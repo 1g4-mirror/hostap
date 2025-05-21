@@ -227,6 +227,13 @@ static void hostapd_send_nei_report_resp(struct hostapd_data *hapd,
 		    os_memcmp(ssid->ssid, nr->ssid.ssid, ssid->ssid_len) != 0)
 			continue;
 
+		/* Only include a measurement report for our own BSSID if the
+		 * Measurement Type is LCI or Location Civic based on what
+		 * IEEE Std 802.11-2024, 11.10.10.3 seems to imply. */
+		if (!civic && !lci &&
+		    ether_addr_equal(hapd->own_addr, nr->bssid))
+			continue;
+
 		send_lci = (lci != 0) && hostapd_check_lci_age(nr, lci_max_age);
 		len = hostapd_neighbor_report_len(buf, nr, send_lci, civic);
 
