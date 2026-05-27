@@ -1162,6 +1162,12 @@ wpa_validate_wpa_ie(struct wpa_authenticator *wpa_auth,
 	else if (key_mgmt & WPA_KEY_MGMT_EPPKE)
 		sm->wpa_key_mgmt = WPA_KEY_MGMT_EPPKE;
 #endif /* CONFIG_ENC_ASSOC */
+#ifdef CONFIG_PQC
+	else if (key_mgmt & WPA_KEY_MGMT_FT_PQC_8021X)
+		sm->wpa_key_mgmt = WPA_KEY_MGMT_FT_PQC_8021X;
+	else if (key_mgmt & WPA_KEY_MGMT_PQC_8021X)
+		sm->wpa_key_mgmt = WPA_KEY_MGMT_PQC_8021X;
+#endif /* CONFIG_PQC */
 	else
 		sm->wpa_key_mgmt = WPA_KEY_MGMT_PSK;
 
