@@ -128,6 +128,24 @@ static void hostapd_wpa_auth_conf(struct hostapd_iface *iface,
 	wconf->eap_using_authentication_frames =
 		conf->eap_using_authentication_frames;
 #endif /* CONFIG_ENC_ASSOC */
+
+#ifdef CONFIG_PQC
+	wconf->num_supported_pqc_constraints = 0;
+
+	if (conf->num_supported_pqc_constraints) {
+		wconf->supported_pqc_constraints =
+			os_memdup(conf->supported_pqc_constraints,
+				  conf->num_supported_pqc_constraints);
+
+		if (!wconf->supported_pqc_constraints)
+			wpa_printf(MSG_ERROR,
+				   "Failed to allocate supported PQC constraints. Continue without it ...");
+		else
+			wconf->num_supported_pqc_constraints =
+				conf->num_supported_pqc_constraints;
+	}
+#endif /* CONFIG_PQC */
+
 	wconf->extended_key_id = conf->extended_key_id;
 	wconf->wpa_key_mgmt = conf->wpa_key_mgmt;
 	wconf->rsn_override_key_mgmt = conf->rsn_override_key_mgmt;

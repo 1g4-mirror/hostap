@@ -1020,6 +1020,9 @@ void hostapd_config_free_bss(struct hostapd_bss_config *conf)
 #endif /* CONFIG_PASN */
 
 	os_free(conf->security_profiles);
+#ifdef CONFIG_PQC
+	os_free(conf->supported_pqc_constraints);
+#endif /* CONFIG_PQC */
 
 	wpabuf_clear_free(conf->sae_pw_id_key);
 

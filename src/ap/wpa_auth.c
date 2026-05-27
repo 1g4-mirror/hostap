@@ -956,6 +956,10 @@ static void wpa_auth_free_conf(struct wpa_auth_config *conf)
 	wpabuf_free(conf->eapol_m3_elements);
 	conf->eapol_m3_elements = NULL;
 #endif /* CONFIG_TESTING_OPTIONS */
+#ifdef CONFIG_PQC
+	os_free(conf->supported_pqc_constraints);
+	conf->supported_pqc_constraints = NULL;
+#endif /* CONFIG_PQC */
 }
 
 

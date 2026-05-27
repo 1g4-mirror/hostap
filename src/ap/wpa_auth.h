@@ -300,6 +300,11 @@ struct wpa_auth_config {
 #endif /* CONFIG_PASN */
 #endif /* CONFIG_ENC_ASSOC */
 
+#ifdef CONFIG_PQC
+	u8 *supported_pqc_constraints;
+	size_t num_supported_pqc_constraints;
+#endif /* CONFIG_PQC */
+
 	int owe_ptk_workaround;
 	u8 transition_disable;
 #ifdef CONFIG_DPP2

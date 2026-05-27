@@ -879,6 +879,52 @@ static int hostapd_parse_intlist_helper(int **int_list, char *val, int delim)
 	return 0;
 }
 
+#ifdef CONFIG_PQC
+
+static int hostapd_parse_pqc_constraints(struct hostapd_bss_config *bss,
+					 const char *val)
+{
+	u8 *list;
+	size_t count = 0;
+	const char *pos = val;
+
+	/* Each entry takes at least one character */
+	list = os_malloc(os_strlen(val) + 1);
+	if (!list)
+		return -1;
+
+	while (*pos) {
+		char *end;
+		long v;
+
+		if (*pos == ' ') {
+			pos++;
+			continue;
+		}
+
+		v = strtol(pos, &end, 10);
+		if (end == pos || (*end && *end != ' ') ||
+		    v < 0 || v > PQC_CONSTRAINT_MAX) {
+			os_free(list);
+			return -1;
+		}
+
+		list[count++] = v;
+		pos = end;
+	}
+
+	if (!count) {
+		os_free(list);
+		return -1;
+	}
+
+	os_free(bss->supported_pqc_constraints);
+	bss->supported_pqc_constraints = list;
+	bss->num_supported_pqc_constraints = count;
+	return 0;
+}
+
+#endif /* CONFIG_PQC */
 
 static int hostapd_parse_intlist(int **int_list, char *val)
 {
@@ -3034,6 +3080,15 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 	} else if (os_strcmp(buf, "eap_using_authentication_frames") == 0) {
 		bss->eap_using_authentication_frames = atoi(pos);
 #endif /* CONFIG_ENC_ASSOC  */
+#ifdef CONFIG_PQC
+	} else if (os_strcmp(buf, "supported_pqc_constraints") == 0) {
+		if (hostapd_parse_pqc_constraints(bss, pos)) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: Invalid supported_pqc_constraints value '%s'",
+				   line, pos);
+			return 1;
+		}
+#endif /* CONFIG_PQC */
 	} else if (os_strcmp(buf, "wpa_group_rekey") == 0) {
 		bss->wpa_group_rekey = atoi(pos);
 		bss->wpa_group_rekey_set = 1;

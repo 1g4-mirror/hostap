@@ -1029,6 +1029,11 @@ struct hostapd_bss_config {
 	int *security_profiles; /* -1 terminated array of enabled security
 				 * profiles */
 	u64 rsnxe_capab_mask;
+
+#ifdef CONFIG_PQC
+	u8 *supported_pqc_constraints;
+	size_t num_supported_pqc_constraints;
+#endif /* CONFIG_PQC */
 };
 
 /**
