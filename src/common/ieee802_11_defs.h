@@ -702,7 +702,19 @@
 #define SEC_PROF_8021X_SHA384		13 /* 802.1X SHA384 (23) */
 #define SEC_PROF_8021X_FT384		14 /* 802.1X+FT SHA384 (22) */
 #define SEC_PROF_8021X_SUITEB		15 /* 802.1X Suite-B (12) */
-/* 16-119: Reserved */
+/*
+ * PQC profiles, added to Table 9-bb18 by IEEE P802.11bt/D1.0, 9.4.2.365.
+ * The trailing digit is the PQC constraint number (see PQC_CONSTRAINT_*).
+ */
+#define SEC_PROF_8021X_PQC_0		16 /* 802.1X PQC (31) */
+#define SEC_PROF_8021X_PQC_1		17 /* 802.1X PQC (31) */
+#define SEC_PROF_8021X_PQC_2		18 /* 802.1X PQC (31) */
+#define SEC_PROF_8021X_PQC_3		19 /* 802.1X PQC (31) */
+#define SEC_PROF_8021X_FT_PQC_0		20 /* 802.1X+FT PQC (32) */
+#define SEC_PROF_8021X_FT_PQC_1		21 /* 802.1X+FT PQC (32) */
+#define SEC_PROF_8021X_FT_PQC_2		22 /* 802.1X+FT PQC (32) */
+#define SEC_PROF_8021X_FT_PQC_3		23 /* 802.1X+FT PQC (32) */
+/* 24-119: Reserved */
 #define SEC_PROF_MAX			119
 
 static inline bool sec_prof_is_sae(int p)
@@ -3436,6 +3448,12 @@ enum pqc_constraint_num {
 	PQC_CONSTRAINT_MAX = 3,
 	PQC_CONSTRAINT_NONE = 255,
 };
+
+/*
+ * "implementations shall support PQC profile 2. All other profiles are optional
+ * to implement." See 12.12.10 in Draft P802.11bt D1.0.
+ */
+#define PQC_CONSTRAINT_MANDATORY PQC_CONSTRAINT_ECP_20_ML_KEM_768
 
 /* See Table 9-aa3 (Content Presence field encoding) in Draft P802.11bt D1.0 */
 enum ieee80211_pqc_content_present {
