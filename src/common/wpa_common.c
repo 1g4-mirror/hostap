@@ -3237,6 +3237,10 @@ const char * wpa_key_mgmt_txt(int key_mgmt, int proto)
 		return "WPA2-EAP-SHA384";
 	case WPA_KEY_MGMT_EPPKE:
 		return "EPPKE";
+	case WPA_KEY_MGMT_PQC_8021X:
+		return "EAP-PQC";
+	case WPA_KEY_MGMT_FT_PQC_8021X:
+		return "FT-EAP-PQC";
 	default:
 		return "UNKNOWN";
 	}
