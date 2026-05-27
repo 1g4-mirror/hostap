@@ -734,12 +734,11 @@ static int hostapd_config_parse_key_mgmt(int line, const char *value)
 	}
 
 	os_free(buf);
-	if (val == 0) {
-		wpa_printf(MSG_ERROR, "Line %d: no key_mgmt values "
-			   "configured.", line);
-		return -1;
-	}
 
+	/*
+	 * An empty list is allowed so that the AKM can be taken solely from
+	 * the configured security profiles.
+	 */
 	return val;
 }
 
