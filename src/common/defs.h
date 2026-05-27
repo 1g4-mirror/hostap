@@ -63,7 +63,8 @@
 			 WPA_KEY_MGMT_FT_SAE | \
 			 WPA_KEY_MGMT_FT_SAE_EXT_KEY | \
 			 WPA_KEY_MGMT_FT_FILS_SHA256 | \
-			 WPA_KEY_MGMT_FT_FILS_SHA384)
+			 WPA_KEY_MGMT_FT_FILS_SHA384 | \
+			 WPA_KEY_MGMT_FT_PQC_8021X)
 
 static inline int wpa_key_mgmt_wpa_ieee8021x(int akm)
 {
@@ -78,7 +79,9 @@ static inline int wpa_key_mgmt_wpa_ieee8021x(int akm)
 			 WPA_KEY_MGMT_FILS_SHA384 |
 			 WPA_KEY_MGMT_FT_FILS_SHA256 |
 			 WPA_KEY_MGMT_FT_FILS_SHA384 |
-			 WPA_KEY_MGMT_IEEE8021X_SHA384));
+			 WPA_KEY_MGMT_IEEE8021X_SHA384 |
+			 WPA_KEY_MGMT_PQC_8021X |
+			 WPA_KEY_MGMT_FT_PQC_8021X));
 }
 
 static inline int wpa_key_mgmt_wpa_psk_no_sae(int akm)
