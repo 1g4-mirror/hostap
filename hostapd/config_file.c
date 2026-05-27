@@ -3108,6 +3108,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->wpa_key_mgmt = hostapd_config_parse_key_mgmt(line, pos);
 		if (bss->wpa_key_mgmt == -1)
 			return 1;
+		bss->wpa_key_mgmt |=
+			sec_prof_implied_key_mgmt(bss->security_profiles);
 	} else if (os_strcmp(buf, "rsn_override_key_mgmt") == 0) {
 		bss->rsn_override_key_mgmt =
 			hostapd_config_parse_key_mgmt(line, pos);
@@ -3210,6 +3212,8 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 				   line, pos);
 			return 1;
 		}
+		bss->wpa_key_mgmt |=
+			sec_prof_implied_key_mgmt(bss->security_profiles);
 #ifdef CONFIG_IEEE80211R_AP
 	} else if (os_strcmp(buf, "mobility_domain") == 0) {
 		if (os_strlen(pos) != 2 * MOBILITY_DOMAIN_ID_LEN ||
