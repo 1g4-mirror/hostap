@@ -319,7 +319,14 @@ static u8 * rsne_write_data(u8 *buf, size_t len, u8 *pos, int group,
 	}
 #endif /* CONFIG_RSN_TESTING */
 
-	if (num_suites == 0) {
+	/*
+	 * WPA_KEY_MGMT_802_1X_PQC and WPA_KEY_MGMT_FT_802_1X_PQC are not
+	 * required to be included in the RSNE in Beacon/Probe Response frames
+	 * since they can be used only with security profiles.
+	 */
+	if (num_suites == 0 &&
+	    !(key_mgmt & (WPA_KEY_MGMT_PQC_8021X |
+			  WPA_KEY_MGMT_FT_PQC_8021X))) {
 		wpa_printf(MSG_DEBUG, "Invalid key management type (%d).",
 			   key_mgmt);
 		return NULL;
