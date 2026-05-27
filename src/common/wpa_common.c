@@ -266,6 +266,12 @@ int rsn_key_mgmt_to_wpa_akm(u32 akm_suite)
 #endif /* CONFIG_PASN */
 	case RSN_AUTH_KEY_MGMT_EPPKE:
 		return WPA_KEY_MGMT_EPPKE;
+#ifdef CONFIG_PQC
+	case RSN_AUTH_KEY_MGMT_802_1X_PQC:
+		return WPA_KEY_MGMT_PQC_8021X;
+	case RSN_AUTH_KEY_MGMT_FT_802_1X_PQC:
+		return WPA_KEY_MGMT_FT_PQC_8021X;
+#endif /* CONFIG_PQC */
 	default:
 		return 0;
 	}
@@ -3287,6 +3293,10 @@ u32 wpa_akm_to_suite(int akm)
 #endif /* CONFIG_PASN */
 	if (akm & WPA_KEY_MGMT_EPPKE)
 		return RSN_AUTH_KEY_MGMT_EPPKE;
+	if (akm & WPA_KEY_MGMT_FT_PQC_8021X)
+		return RSN_AUTH_KEY_MGMT_FT_802_1X_PQC;
+	if (akm & WPA_KEY_MGMT_PQC_8021X)
+		return RSN_AUTH_KEY_MGMT_802_1X_PQC;
 	return 0;
 }
 
