@@ -1413,6 +1413,17 @@ struct wpa_ssid {
 	 * This is a -1 terminated int_array of enabled security profiles.
 	 */
 	int *security_profiles;
+
+#ifdef CONFIG_PQC
+	/**
+	 * supported_pqc_constraints - List of supported PQC constraints
+	 *
+	 * An array of supported Post-Quantum Cryptography constraint numbers
+	 * as defined in enum pqc_constraint_num
+	 */
+	u8 *supported_pqc_constraints;
+	size_t n_supported_pqc_constraints;
+#endif /* CONFIG_PQC */
 };
 
 #endif /* CONFIG_SSID_H */

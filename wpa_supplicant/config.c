@@ -2647,6 +2647,96 @@ static char * wpa_config_write_security_profiles(const struct parse_data *data,
 #endif /* NO_CONFIG_WRITE */
 
 
+#ifdef CONFIG_PQC
+
+static int
+wpa_config_parse_supported_pqc_constraints(const struct parse_data *data,
+					   struct wpa_ssid *ssid,
+					   int line, const char *value)
+{
+	u8 *list;
+	size_t count = 0;
+	const char *pos = value;
+
+	/* Each entry takes at least one character */
+	list = os_malloc(os_strlen(value) + 1);
+	if (!list)
+		return -1;
+
+	while (*pos) {
+		char *end;
+		long val;
+
+		if (*pos == ' ') {
+			pos++;
+			continue;
+		}
+
+		val = strtol(pos, &end, 10);
+		if (end == pos || (*end && *end != ' ') ||
+		    val < 0 || val > PQC_CONSTRAINT_MAX) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: Invalid PQC constraint '%s'",
+				   line, pos);
+			os_free(list);
+			return -1;
+		}
+
+		list[count++] = val;
+		pos = end;
+	}
+
+	if (!count) {
+		wpa_printf(MSG_ERROR, "Line %d: No PQC constraints configured",
+			   line);
+		os_free(list);
+		return -1;
+	}
+
+	os_free(ssid->supported_pqc_constraints);
+	ssid->supported_pqc_constraints = list;
+	ssid->n_supported_pqc_constraints = count;
+
+	return 0;
+}
+
+
+#ifndef NO_CONFIG_WRITE
+
+static char * wpa_config_write_supported_pqc_constraints(
+	const struct parse_data *data, struct wpa_ssid *ssid)
+{
+	char *buf, *end, *pos;
+	size_t i;
+	int ret;
+
+	if (!ssid->supported_pqc_constraints)
+		return NULL;
+
+	buf = os_zalloc(10 * ssid->n_supported_pqc_constraints + 1);
+	if (!buf)
+		return NULL;
+
+	pos = buf;
+	end = buf + 10 * ssid->n_supported_pqc_constraints;
+	for (i = 0; i < ssid->n_supported_pqc_constraints; i++) {
+		ret = os_snprintf(pos, end - pos, "%s%u",
+				  i == 0 ? "" : " ",
+				  ssid->supported_pqc_constraints[i]);
+		if (os_snprintf_error(end - pos, ret)) {
+			end[-1] = '\0';
+			return buf;
+		}
+
+		pos += ret;
+	}
+
+	return buf;
+}
+
+#endif /* NO_CONFIG_WRITE */
+#endif /* CONFIG_PQC */
+
 /* Helper macros for network block parser */
 
 #ifdef OFFSET
@@ -3016,6 +3106,9 @@ static const struct parse_data ssid_fields[] = {
 	{ FUNC(pasn_groups) },
 #endif /* CONFIG_PASN */
 	{ FUNC(security_profiles) },
+#ifdef CONFIG_PQC
+	{ FUNC(supported_pqc_constraints) },
+#endif /* CONFIG_PQC */
 };
 
 #undef OFFSET
@@ -3229,6 +3322,9 @@ void wpa_config_free_ssid(struct wpa_ssid *ssid)
 	os_free(ssid->pasn_groups);
 #endif /* CONFIG_PASN */
 	os_free(ssid->security_profiles);
+#ifdef CONFIG_PQC
+	os_free(ssid->supported_pqc_constraints);
+#endif /* CONFIG_PQC */
 	bin_clear_free(ssid, sizeof(*ssid));
 }
 
