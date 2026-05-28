@@ -778,6 +778,54 @@ static int wpa_supplicant_match_privacy(struct wpa_bss *bss,
 	return !privacy;
 }
 
+#ifdef CONFIG_PQC
+
+static const u8 pqc_mandatory_constraint[] = { PQC_CONSTRAINT_MANDATORY };
+
+
+bool wpas_pqc_constraint_match(struct wpa_ssid *ssid, u8 pqc)
+{
+	size_t i;
+
+	if (!ssid->supported_pqc_constraints)
+		return false;
+
+	for (i = 0; i < ssid->n_supported_pqc_constraints; i++) {
+		if (ssid->supported_pqc_constraints[i] == pqc)
+			return true;
+	}
+
+	return false;
+}
+
+#endif /* CONFIG_PQC */
+
+
+/*
+ * Return the configured supported PQC constraints of a network block. A
+ * network without an explicit list falls back to the mandatory constraint
+ * only, matching wpas_pqc_constraint_match() and the AP side. The list is
+ * empty when PQC is not enabled or no network is selected.
+ */
+void wpas_ssid_pqc_constraints(struct wpa_ssid *ssid, const u8 **list,
+			       size_t *num)
+{
+	*list = NULL;
+	*num = 0;
+#ifdef CONFIG_PQC
+	if (!ssid)
+		return;
+
+	if (ssid->n_supported_pqc_constraints) {
+		*list = ssid->supported_pqc_constraints;
+		*num = ssid->n_supported_pqc_constraints;
+	} else {
+		*list = pqc_mandatory_constraint;
+		*num = ARRAY_SIZE(pqc_mandatory_constraint);
+	}
+#endif /* CONFIG_PQC */
+}
+
 
 static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 					 struct wpa_ssid *ssid,
@@ -882,8 +930,8 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 		 * does not explicitly list those values.
 		 */
 		if (sp) {
-			int sp_key_mgmt = security_profile_get_key_mgmt(
-				sp, ssid->key_mgmt);
+			int sp_key_mgmt =
+				security_profile_get_key_mgmt(sp, ssid);
 
 			if (!sp_key_mgmt ||
 			    !(ssid->pairwise_cipher & WPA_CIPHER_GCMP_256)) {
