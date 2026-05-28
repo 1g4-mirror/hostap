@@ -728,17 +728,8 @@ static struct wpabuf * sme_build_802_1x_auth_start(struct wpa_supplicant *wpa_s,
 {
 	struct wpabuf *buf, *eapol_pdu;
 	size_t buf_len, sp_len;
-	u32 suite = 0;
 	struct wpabuf *buf_for_ptk = NULL;
 	int key_mgmt = sme_get_key_mgmt(wpa_s, external);
-
-	if (wpa_key_mgmt_wpa_ieee8021x(key_mgmt & ~WPA_KEY_MGMT_IEEE8021X))
-		suite = wpa_akm_to_suite(key_mgmt);
-
-	if (suite == 0) {
-		wpa_dbg(wpa_s, MSG_DEBUG, "No matching IEEE 802.1X AKM found");
-		return NULL;
-	}
 
 	eapol_pdu = eapol_sm_get_eapol_pdu(wpa_s->eapol,
 					   IEEE802_1X_TYPE_EAPOL_START);
@@ -785,7 +776,7 @@ static struct wpabuf * sme_build_802_1x_auth_start(struct wpa_supplicant *wpa_s,
 		wpabuf_put_u8(buf, WLAN_EID_EXTENSION);
 		wpabuf_put_u8(buf, 1 + 4);
 		wpabuf_put_u8(buf, WLAN_EID_EXT_AKM_SUITE_SELECTOR);
-		wpabuf_put_be32(buf, suite);
+		wpabuf_put_be32(buf, wpa_akm_to_suite(key_mgmt));
 	}
 
 #ifdef CONFIG_TESTING_OPTIONS
@@ -892,7 +883,25 @@ sme_build_802_1x_auth_request(struct wpa_supplicant *wpa_s,
 			      bool external)
 {
 	if (start) {
+		u32 suite;
+		int key_mgmt = sme_get_key_mgmt(wpa_s, external);
+
 		sme_802_1x_auth_data_free(wpa_s);
+
+		if (!wpa_key_mgmt_wpa_ieee8021x(key_mgmt &
+						~WPA_KEY_MGMT_IEEE8021X)) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"No IEEE 802.1X key management enabled");
+			return NULL;
+		}
+
+		suite = wpa_akm_to_suite(key_mgmt);
+		if (!suite) {
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"No matching IEEE 802.1X AKM found");
+			return NULL;
+		}
+
 		wpa_s->auth_1x = os_zalloc(sizeof(struct auth_802_1x_data));
 		if (!wpa_s->auth_1x)
 			return NULL;
