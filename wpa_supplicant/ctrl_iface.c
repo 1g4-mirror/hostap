@@ -4415,6 +4415,14 @@ static int ctrl_iface_get_capability_key_mgmt(int res, bool strict,
 		pos += ret;
 	}
 #endif /* CONFIG_SUITEB192 */
+#ifdef CONFIG_PQC
+	if (key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_802_1X_PQC) {
+		ret = os_snprintf(pos, end - pos, " EAP-PQC");
+		if (os_snprintf_error(end - pos, ret))
+			return pos - buf;
+		pos += ret;
+	}
+#endif /* CONFIG_PQC */
 #ifdef CONFIG_OWE
 	if (key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_OWE) {
 		ret = os_snprintf(pos, end - pos, " OWE");
@@ -4494,6 +4502,14 @@ static int ctrl_iface_get_capability_key_mgmt(int res, bool strict,
 		pos += ret;
 	}
 #endif /* CONFIG_SHA384 */
+#ifdef CONFIG_PQC
+	if (key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_FT_802_1X_PQC) {
+		ret = os_snprintf(pos, end - pos, " FT-EAP-PQC");
+		if (os_snprintf_error(end - pos, ret))
+			return pos - buf;
+		pos += ret;
+	}
+#endif /* CONFIG_PQC */
 #endif /* CONFIG_IEEE80211R */
 #ifdef CONFIG_SAE
 	if (key_mgmt & WPA_DRIVER_CAPA_KEY_MGMT_SAE) {
