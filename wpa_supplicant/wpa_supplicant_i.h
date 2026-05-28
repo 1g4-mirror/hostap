@@ -2060,6 +2060,9 @@ void ibss_mesh_setup_freq(struct wpa_supplicant *wpa_s,
 
 /* events.c */
 void wpa_supplicant_mark_disassoc(struct wpa_supplicant *wpa_s);
+bool wpas_security_profile_match(struct wpa_supplicant *wpa_s,
+				 struct wpa_ssid *ssid,
+				 struct wpa_bss *bss, int debug_print);
 int wpa_supplicant_connect(struct wpa_supplicant *wpa_s,
 			   struct wpa_bss *selected,
 			   struct wpa_ssid *ssid);

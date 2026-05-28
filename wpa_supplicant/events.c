@@ -827,6 +827,47 @@ void wpas_ssid_pqc_constraints(struct wpa_ssid *ssid, const u8 **list,
 }
 
 
+/*
+ * wpas_security_profile_match - Check advertised security profiles against
+ * network configuration
+ *
+ * @wpa_s: Pointer to wpa_supplicant data
+ * @ssid: Network configuration to match against
+ * @bss: BSS entry with the advertised Security Profile element
+ * @debug_print: Whether to print debug messages about the matching process
+ *
+ * Check whether the Security Profile element advertised by the AP includes
+ * at least one profile that is compatible with the configured
+ * network parameters (AKM, pairwise cipher and PQC constraints). Returns true
+ * if at least one advertised profile matches; otherwise false.
+ */
+bool wpas_security_profile_match(struct wpa_supplicant *wpa_s,
+				 struct wpa_ssid *ssid,
+				 struct wpa_bss *bss, int debug_print)
+{
+	const u8 *sp;
+
+	sp = wpa_bss_get_ie_ext(bss, WLAN_EID_EXT_SECURITY_PROFILE);
+	if (!sp) {
+		if (debug_print)
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"   skip - no Security Profile element");
+		return false;
+	}
+
+	/* All defined profiles mandate GCMP-256 as the pairwise cipher */
+	if (!(ssid->pairwise_cipher & WPA_CIPHER_GCMP_256) ||
+	    !security_profile_get_key_mgmt(sp, ssid)) {
+		if (debug_print)
+			wpa_dbg(wpa_s, MSG_DEBUG,
+				"   skip - no advertised security profile matches network configuration");
+		return false;
+	}
+
+	return true;
+}
+
+
 static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 					 struct wpa_ssid *ssid,
 					 struct wpa_bss *bss, int debug_print)
