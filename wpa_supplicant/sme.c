@@ -515,21 +515,22 @@ static void sme_802_1x_auth_data_free(struct wpa_supplicant *wpa_s)
 
 static int sme_init_802_1x_for_ptk(struct wpa_supplicant *wpa_s, bool external)
 {
+	struct auth_802_1x_data *auth_1x = wpa_s->auth_1x;
 	int rsne_len, rsnxe_len;
 
 	/* Generate SNonce */
-	if (random_get_bytes(wpa_s->auth_1x->snonce, WPA_NONCE_LEN) < 0) {
+	if (random_get_bytes(auth_1x->snonce, WPA_NONCE_LEN) < 0) {
 		wpa_dbg(wpa_s, MSG_INFO, "Failed to generate SNonce");
 		goto fail;
 	}
 
 	/* Initialize ECDH for Diffie-Hellman Parameter element */
 	/* TODO: Add support for other groups */
-	wpa_s->auth_1x->dh_group = 19;
-	wpa_s->auth_1x->ecdh = crypto_ecdh_init(wpa_s->auth_1x->dh_group);
-	if (!wpa_s->auth_1x->ecdh) {
+	auth_1x->dh_group = 19;
+	auth_1x->ecdh = crypto_ecdh_init(auth_1x->dh_group);
+	if (!auth_1x->ecdh) {
 		wpa_dbg(wpa_s, MSG_INFO, "Failed to init ECDH group %d",
-			wpa_s->auth_1x->dh_group);
+			auth_1x->dh_group);
 		goto fail;
 	}
 
@@ -537,7 +538,7 @@ static int sme_init_802_1x_for_ptk(struct wpa_supplicant *wpa_s, bool external)
 	if (external)
 		rsne_len = wpa_external_auth_add_rsne(
 			wpa_s->wpa,
-			wpa_s->auth_1x->rsne, sizeof(wpa_s->auth_1x->rsne),
+			auth_1x->rsne, sizeof(auth_1x->rsne),
 			wpa_s->sme.ext_auth_key_mgmt,
 			wpa_s->sme.ext_pairwise_cipher,
 			wpa_s->sme.ext_group_cipher,
@@ -546,30 +547,30 @@ static int sme_init_802_1x_for_ptk(struct wpa_supplicant *wpa_s, bool external)
 			sme_get_ext_auth_pmkid(wpa_s));
 	else
 		rsne_len = wpa_gen_wpa_ie_rsn(
-			wpa_s->auth_1x->rsne, sizeof(wpa_s->auth_1x->rsne),
+			auth_1x->rsne, sizeof(auth_1x->rsne),
 			wpa_s->pairwise_cipher, wpa_s->group_cipher,
 			wpa_s->key_mgmt, wpa_s->mgmt_group_cipher, wpa_s->wpa);
 	if (rsne_len < 0) {
 		wpa_dbg(wpa_s, MSG_INFO, "Failed to generate RSNE");
 		goto fail;
 	}
-	wpa_s->auth_1x->rsne_len = rsne_len;
+	auth_1x->rsne_len = rsne_len;
 
 	/* Generate RSNXE */
 	if (external) {
 		/* Store driver-provided RSNXE directly */
-		os_memcpy(wpa_s->auth_1x->rsnxe, wpa_s->sme.ext_rsnxe,
+		os_memcpy(auth_1x->rsnxe, wpa_s->sme.ext_rsnxe,
 			  wpa_s->sme.ext_rsnxe_len);
 		rsnxe_len = wpa_s->sme.ext_rsnxe_len;
 	} else {
-		rsnxe_len = wpa_gen_rsnxe(wpa_s->wpa, wpa_s->auth_1x->rsnxe,
-					  sizeof(wpa_s->auth_1x->rsnxe));
+		rsnxe_len = wpa_gen_rsnxe(wpa_s->wpa, auth_1x->rsnxe,
+					  sizeof(auth_1x->rsnxe));
 	}
 	if (rsnxe_len < 0) {
 		wpa_dbg(wpa_s, MSG_INFO, "Failed to generate RSNXE");
 		goto fail;
 	}
-	wpa_s->auth_1x->rsnxe_len = rsnxe_len;
+	auth_1x->rsnxe_len = rsnxe_len;
 
 	return 0;
 fail:
@@ -581,13 +582,14 @@ fail:
 static struct wpabuf *
 sme_build_802_1x_for_ptk(struct wpa_supplicant *wpa_s)
 {
+	struct auth_802_1x_data *auth_1x = wpa_s->auth_1x;
 	struct wpabuf *pubkey_buf;
 	struct wpabuf *buf = NULL;
-	size_t rsne_len = wpa_s->auth_1x->rsne_len;
-	size_t rsnxe_len = wpa_s->auth_1x->rsnxe_len;
+	size_t rsne_len = auth_1x->rsne_len;
+	size_t rsnxe_len = auth_1x->rsnxe_len;
 	size_t total_len;
 
-	pubkey_buf = crypto_ecdh_get_pubkey(wpa_s->auth_1x->ecdh, 0);
+	pubkey_buf = crypto_ecdh_get_pubkey(auth_1x->ecdh, 0);
 	if (!pubkey_buf) {
 		wpa_dbg(wpa_s, MSG_INFO, "Failed to get ECDH pubkey");
 		goto fail;
@@ -605,15 +607,15 @@ sme_build_802_1x_for_ptk(struct wpa_supplicant *wpa_s)
 	wpabuf_put_u8(buf, WLAN_EID_EXTENSION);
 	wpabuf_put_u8(buf, 1 + WPA_NONCE_LEN);
 	wpabuf_put_u8(buf, WLAN_EID_EXT_NONCE);
-	wpabuf_put_data(buf, wpa_s->auth_1x->snonce, WPA_NONCE_LEN);
+	wpabuf_put_data(buf, auth_1x->snonce, WPA_NONCE_LEN);
 
-	wpabuf_put_data(buf, wpa_s->auth_1x->rsne, rsne_len);
-	wpabuf_put_data(buf, wpa_s->auth_1x->rsnxe, rsnxe_len);
+	wpabuf_put_data(buf, auth_1x->rsne, rsne_len);
+	wpabuf_put_data(buf, auth_1x->rsnxe, rsnxe_len);
 
 	wpabuf_put_u8(buf, WLAN_EID_EXTENSION);
 	wpabuf_put_u8(buf, 1 + 2 + wpabuf_len(pubkey_buf));
 	wpabuf_put_u8(buf, WLAN_EID_EXT_OWE_DH_PARAM);
-	wpabuf_put_le16(buf, wpa_s->auth_1x->dh_group);
+	wpabuf_put_le16(buf, auth_1x->dh_group);
 	wpabuf_put_buf(buf, pubkey_buf);
 
 	wpabuf_free(pubkey_buf);
