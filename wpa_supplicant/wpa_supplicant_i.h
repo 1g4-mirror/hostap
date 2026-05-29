@@ -742,6 +742,11 @@ struct auth_802_1x_data {
 	size_t rsne_len;
 	u8 rsnxe[257];
 	size_t rsnxe_len;
+
+#ifdef CONFIG_PQC
+	const struct ieee80211_pqc_profile *pqc_profile;
+	struct crypto_ml_kem *ml_kem;
+#endif /* CONFIG_PQC */
 };
 #endif /* CONFIG_IEEE8021X_AUTH */
 

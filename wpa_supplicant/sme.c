@@ -497,6 +497,15 @@ static void sme_802_1x_auth_data_free(struct wpa_supplicant *wpa_s)
 	if (!wpa_s || !wpa_s->auth_1x)
 		return;
 
+#ifdef CONFIG_PQC
+	wpa_s->auth_1x->pqc_profile = NULL;
+
+	if (wpa_s->auth_1x->ml_kem) {
+		crypto_ml_kem_deinit(wpa_s->auth_1x->ml_kem);
+		wpa_s->auth_1x->ml_kem = NULL;
+	}
+#endif /* CONFIG_PQC */
+
 	if (wpa_s->auth_1x->ecdh) {
 		crypto_ecdh_deinit(wpa_s->auth_1x->ecdh);
 		wpa_s->auth_1x->ecdh = NULL;
@@ -524,14 +533,56 @@ static int sme_init_802_1x_for_ptk(struct wpa_supplicant *wpa_s, bool external)
 		goto fail;
 	}
 
-	/* Initialize ECDH for Diffie-Hellman Parameter element */
-	/* TODO: Add support for other groups */
-	auth_1x->dh_group = 19;
-	auth_1x->ecdh = crypto_ecdh_init(auth_1x->dh_group);
-	if (!auth_1x->ecdh) {
-		wpa_dbg(wpa_s, MSG_INFO, "Failed to init ECDH group %d",
-			auth_1x->dh_group);
+	if (wpa_key_mgmt_pqc(wpa_s->key_mgmt)) {
+#ifdef CONFIG_PQC
+		int sec_prof;
+
+		if (!wpa_s->sel_security_profile)
+			goto fail;
+		sec_prof = wpa_s->sel_security_profile->number;
+		auth_1x->pqc_profile = pqc_profile_get(sec_prof);
+		if (!auth_1x->pqc_profile) {
+			wpa_dbg(wpa_s, MSG_INFO,
+				"Invalid PQC security profile %d",
+				sec_prof);
+			goto fail;
+		}
+
+		auth_1x->dh_group = auth_1x->pqc_profile->group;
+		auth_1x->ml_kem = crypto_ml_kem_init(auth_1x->pqc_profile->kem);
+		if (!auth_1x->ml_kem) {
+			wpa_dbg(wpa_s, MSG_INFO,
+				"Failed to init ML-KEM for security profile %d",
+				sec_prof);
+			goto fail;
+		}
+
+		if (crypto_ml_kem_keygen(auth_1x->ml_kem) < 0) {
+			wpa_dbg(wpa_s, MSG_INFO,
+				"Failed to generate ML-KEM key for security profile %d",
+				sec_prof);
+			goto fail;
+		}
+#else /* CONFIG_PQC */
+		wpa_dbg(wpa_s, MSG_INFO,
+			"PQC AKM suite 0x%08x not supported in this build",
+			wpa_s->key_mgmt);
 		goto fail;
+#endif /* CONFIG_PQC */
+	} else {
+		/* TODO: Add support for other groups */
+		auth_1x->dh_group = 19;
+	}
+
+	/* Initialize ECDH for Diffie-Hellman Parameter element.
+	 * ECDH is not used for pure-PQC profiles */
+	if (auth_1x->dh_group > 0) {
+		auth_1x->ecdh = crypto_ecdh_init(auth_1x->dh_group);
+		if (!auth_1x->ecdh) {
+			wpa_dbg(wpa_s, MSG_INFO, "Failed to init ECDH group %d",
+				auth_1x->dh_group);
+			goto fail;
+		}
 	}
 
 	/* Generate RSNE */
