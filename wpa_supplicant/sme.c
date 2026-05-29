@@ -513,13 +513,9 @@ static void sme_802_1x_auth_data_free(struct wpa_supplicant *wpa_s)
 }
 
 
-static struct wpabuf *
-sme_build_802_1x_for_ptk(struct wpa_supplicant *wpa_s, bool external)
+static int sme_init_802_1x_for_ptk(struct wpa_supplicant *wpa_s, bool external)
 {
-	struct wpabuf *pubkey_buf = NULL;
-	struct wpabuf *buf = NULL;
 	int rsne_len, rsnxe_len;
-	size_t total_len = 0;
 
 	/* Generate SNonce */
 	if (random_get_bytes(wpa_s->auth_1x->snonce, WPA_NONCE_LEN) < 0) {
@@ -534,12 +530,6 @@ sme_build_802_1x_for_ptk(struct wpa_supplicant *wpa_s, bool external)
 	if (!wpa_s->auth_1x->ecdh) {
 		wpa_dbg(wpa_s, MSG_INFO, "Failed to init ECDH group %d",
 			wpa_s->auth_1x->dh_group);
-		goto fail;
-	}
-
-	pubkey_buf = crypto_ecdh_get_pubkey(wpa_s->auth_1x->ecdh, 0);
-	if (!pubkey_buf) {
-		wpa_dbg(wpa_s, MSG_INFO, "Failed to get ECDH pubkey");
 		goto fail;
 	}
 
@@ -581,6 +571,28 @@ sme_build_802_1x_for_ptk(struct wpa_supplicant *wpa_s, bool external)
 	}
 	wpa_s->auth_1x->rsnxe_len = rsnxe_len;
 
+	return 0;
+fail:
+	sme_802_1x_auth_data_free(wpa_s);
+	return -1;
+}
+
+
+static struct wpabuf *
+sme_build_802_1x_for_ptk(struct wpa_supplicant *wpa_s)
+{
+	struct wpabuf *pubkey_buf;
+	struct wpabuf *buf = NULL;
+	size_t rsne_len = wpa_s->auth_1x->rsne_len;
+	size_t rsnxe_len = wpa_s->auth_1x->rsnxe_len;
+	size_t total_len;
+
+	pubkey_buf = crypto_ecdh_get_pubkey(wpa_s->auth_1x->ecdh, 0);
+	if (!pubkey_buf) {
+		wpa_dbg(wpa_s, MSG_INFO, "Failed to get ECDH pubkey");
+		goto fail;
+	}
+
 	total_len = 3 + WPA_NONCE_LEN + rsne_len + rsnxe_len +
 		3 + 2 + wpabuf_len(pubkey_buf);
 
@@ -609,6 +621,7 @@ sme_build_802_1x_for_ptk(struct wpa_supplicant *wpa_s, bool external)
 	return buf;
 
 fail:
+	wpabuf_free(buf);
 	wpabuf_free(pubkey_buf);
 	sme_802_1x_auth_data_free(wpa_s);
 	return NULL;
@@ -745,7 +758,7 @@ static struct wpabuf * sme_build_802_1x_auth_start(struct wpa_supplicant *wpa_s,
 	buf_len = 2 + 2 + 2 + wpabuf_len(eapol_pdu);
 
 	if (wpa_s->auth_1x->derive_ptk) {
-		buf_for_ptk = sme_build_802_1x_for_ptk(wpa_s, external);
+		buf_for_ptk = sme_build_802_1x_for_ptk(wpa_s);
 		if (!buf_for_ptk) {
 			wpabuf_free(eapol_pdu);
 			return NULL;
@@ -911,6 +924,11 @@ sme_build_802_1x_auth_request(struct wpa_supplicant *wpa_s,
 		if (!wpa_s->auth_1x->pmksa_caching) {
 			eapol_sm_set_eap_over_auth_frame(wpa_s->eapol, true);
 			eapol_sm_notify_portEnabled(wpa_s->eapol, true);
+		}
+
+		if (sme_init_802_1x_for_ptk(wpa_s, external)) {
+			sme_802_1x_auth_data_free(wpa_s);
+			return NULL;
 		}
 
 		wpa_s->auth_1x->auth_trans = 1;
