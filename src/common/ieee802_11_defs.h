@@ -563,6 +563,9 @@
 #define WLAN_EID_EXT_SECURITY_PROFILE 162
 #define WLAN_EID_EXT_POW 164
 
+/* IEEE P802.11bt/D1.0, Table 9-aa4 (Extended Length Element IDs) */
+#define WLAN_EID_EXT_LEN_PQC_PARAMETER 0
+
 /* Extended Capabilities field */
 #define WLAN_EXT_CAPAB_20_40_COEX 0
 #define WLAN_EXT_CAPAB_GLK 1
