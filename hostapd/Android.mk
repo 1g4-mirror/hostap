@@ -1001,12 +1001,15 @@ ifdef NEED_TLS_PRF_SHA384
 OBJS += src/crypto/sha384-tlsprf.c
 endif
 ifdef NEED_HMAC_SHA256_KDF
+L_CFLAGS += -DCONFIG_HMAC_SHA256_KDF
 OBJS += src/crypto/sha256-kdf.c
 endif
 ifdef NEED_HMAC_SHA384_KDF
+L_CFLAGS += -DCONFIG_HMAC_SHA384_KDF
 OBJS += src/crypto/sha384-kdf.c
 endif
 ifdef NEED_HMAC_SHA512_KDF
+L_CFLAGS += -DCONFIG_HMAC_SHA512_KDF
 OBJS += src/crypto/sha512-kdf.c
 endif
 ifdef NEED_SHA384
