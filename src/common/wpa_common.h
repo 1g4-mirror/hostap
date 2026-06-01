@@ -882,4 +882,10 @@ struct security_profile_entry {
 int sec_prof_implied_key_mgmt(const int *profiles);
 const struct security_profile_entry * sec_prof_get(int p);
 
+int hkdf_extract(size_t hash_len, const u8 *salt, size_t salt_len,
+		 size_t num_elem, const u8 *addr[], const size_t len[],
+		 u8 *prk);
+int hkdf_expand(size_t hash_len, const u8 *prk, size_t prk_len,
+		const char *info, u8 *okm, size_t okm_len);
+
 #endif /* WPA_COMMON_H */

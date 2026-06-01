@@ -5080,3 +5080,57 @@ const struct security_profile_entry * sec_prof_get(int p)
 
 	return NULL;
 }
+
+
+#if defined(CONFIG_SAE) || defined(CONFIG_PQC)
+
+int hkdf_extract(size_t hash_len, const u8 *salt, size_t salt_len,
+		 size_t num_elem, const u8 *addr[], const size_t len[],
+		 u8 *prk)
+{
+#ifdef CONFIG_SHA256
+	if (hash_len == 32)
+		return hmac_sha256_vector(salt, salt_len, num_elem, addr, len,
+					  prk);
+#endif /* CONFIG_SHA256 */
+#ifdef CONFIG_SHA384
+	if (hash_len == 48)
+		return hmac_sha384_vector(salt, salt_len, num_elem, addr, len,
+					  prk);
+#endif /* CONFIG_SHA384 */
+#ifdef CONFIG_SHA512
+	if (hash_len == 64)
+		return hmac_sha512_vector(salt, salt_len, num_elem, addr, len,
+					  prk);
+#endif /* CONFIG_SHA512 */
+	return -1;
+}
+
+
+int hkdf_expand(size_t hash_len, const u8 *prk, size_t prk_len,
+		const char *info, u8 *okm, size_t okm_len)
+{
+	size_t info_len = os_strlen(info);
+
+#ifdef CONFIG_SHA256
+	if (hash_len == 32)
+		return hmac_sha256_kdf(prk, prk_len, NULL,
+				       (const u8 *) info, info_len,
+				       okm, okm_len);
+#endif /* CONFIG_SHA256 */
+#ifdef CONFIG_SHA384
+	if (hash_len == 48)
+		return hmac_sha384_kdf(prk, prk_len, NULL,
+				       (const u8 *) info, info_len,
+				       okm, okm_len);
+#endif /* CONFIG_SHA384 */
+#ifdef CONFIG_SHA512
+	if (hash_len == 64)
+		return hmac_sha512_kdf(prk, prk_len, NULL,
+				       (const u8 *) info, info_len,
+				       okm, okm_len);
+#endif /* CONFIG_SHA512 */
+	return -1;
+}
+
+#endif /* CONFIG_SAE || CONFIG_PQC */
