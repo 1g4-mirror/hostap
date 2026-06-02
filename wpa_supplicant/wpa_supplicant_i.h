@@ -725,6 +725,7 @@ struct last_scan_ssid {
  * @rsne_len: Length of RSNE
  * @rsnxe: RSNXE
  * @rsnxe_len: Length of RSNXE
+ * @eap_success: Whether EAP authentication was successful
  */
 struct auth_802_1x_data {
 	u16 auth_trans;
@@ -742,6 +743,8 @@ struct auth_802_1x_data {
 	size_t rsne_len;
 	u8 rsnxe[257];
 	size_t rsnxe_len;
+
+	bool eap_success;
 
 #ifdef CONFIG_PQC
 	const struct ieee80211_pqc_profile *pqc_profile;
