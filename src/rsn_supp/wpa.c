@@ -369,6 +369,15 @@ static int wpa_supplicant_get_pmk(struct wpa_sm *sm,
 			pmk_len = PMK_LEN_SUITE_B_192;
 		else
 			pmk_len = PMK_LEN;
+#ifdef CONFIG_PQC
+		if (wpa_key_mgmt_pqc(sm->key_mgmt) && sm->security_profile) {
+			const struct ieee80211_pqc_profile *c;
+
+			c = pqc_profile_get(sm->security_profile->number);
+			if (c)
+				pmk_len = wpa_hash_len(c->hash);
+		}
+#endif /* CONFIG_PQC */
 		res = eapol_sm_get_key(sm->eapol, sm->pmk, pmk_len);
 		if (res) {
 			if (pmk_len == PMK_LEN) {
