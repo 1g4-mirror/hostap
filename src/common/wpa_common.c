@@ -5107,11 +5107,9 @@ int hkdf_extract(size_t hash_len, const u8 *salt, size_t salt_len,
 }
 
 
-int hkdf_expand(size_t hash_len, const u8 *prk, size_t prk_len,
-		const char *info, u8 *okm, size_t okm_len)
+int hkdf_expand_bin(size_t hash_len, const u8 *prk, size_t prk_len,
+		    const u8 *info, size_t info_len, u8 *okm, size_t okm_len)
 {
-	size_t info_len = os_strlen(info);
-
 #ifdef CONFIG_SHA256
 	if (hash_len == 32)
 		return hmac_sha256_kdf(prk, prk_len, NULL,
@@ -5131,6 +5129,14 @@ int hkdf_expand(size_t hash_len, const u8 *prk, size_t prk_len,
 				       okm, okm_len);
 #endif /* CONFIG_SHA512 */
 	return -1;
+}
+
+
+int hkdf_expand(size_t hash_len, const u8 *prk, size_t prk_len,
+		const char *info, u8 *okm, size_t okm_len)
+{
+	return hkdf_expand_bin(hash_len, prk, prk_len, (const u8 *) info,
+			       os_strlen(info), okm, okm_len);
 }
 
 #endif /* CONFIG_SAE || CONFIG_PQC */
