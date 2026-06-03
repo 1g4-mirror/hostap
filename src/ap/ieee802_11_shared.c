@@ -1224,7 +1224,7 @@ static bool pqc_constraint_supported(struct hostapd_bss_config *conf, int pqc)
  * A configured security profile is advertised only if its PQC constraint, when
  * it has one, is listed in the configured supported_pqc_constraints.
  */
-static bool sec_prof_advertised(struct hostapd_data *hapd, int p)
+bool hostapd_sec_prof_advertised(struct hostapd_data *hapd, int p)
 {
 #ifdef CONFIG_PQC
 	const struct security_profile_entry *sp = sec_prof_get(p);
@@ -1249,7 +1249,7 @@ static int get_max_security_profile(struct hostapd_data *hapd)
 
 	for (i = 0; profiles && profiles[i] >= 0; i++) {
 		if (profiles[i] > max_profile &&
-		    sec_prof_advertised(hapd, profiles[i]))
+		    hostapd_sec_prof_advertised(hapd, profiles[i]))
 			max_profile = profiles[i];
 	}
 
@@ -1348,7 +1348,7 @@ u8 * hostapd_eid_security_profile(struct hostapd_data *hapd, u8 *eid)
 	for (i = 0; hapd->conf->security_profiles[i] >= 0; i++) {
 		int p = hapd->conf->security_profiles[i];
 
-		if (p / 8 < (int) bitmap_len && sec_prof_advertised(hapd, p))
+		if (p / 8 < (int) bitmap_len && hostapd_sec_prof_advertised(hapd, p))
 			bitmap[p / 8] |= BIT(p % 8);
 	}
 
