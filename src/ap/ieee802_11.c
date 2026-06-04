@@ -3463,6 +3463,11 @@ static void handle_auth_802_1x(struct hostapd_data *hapd, struct sta_info *sta,
 	u16 encap_len, resp = WLAN_STATUS_SUCCESS;
 	const u8 *end;
 	struct wpabuf *reply;
+	bool force_kdk = false;
+
+#ifdef CONFIG_TESTING_OPTIONS
+	force_kdk = hapd->conf->force_kdk_derivation;
+#endif /* CONFIG_TESTING_OPTIONS */
 
 	if (len < 2) {
 		wpa_printf(MSG_INFO, "Missing Encapsulation Length field");
@@ -3559,11 +3564,6 @@ static void handle_auth_802_1x(struct hostapd_data *hapd, struct sta_info *sta,
 			const u8 *aa;
 			enum wpa_alg alg;
 			size_t key_len;
-#ifdef CONFIG_TESTING_OPTIONS
-			bool force_kdk = hapd->conf->force_kdk_derivation;
-#else /* CONFIG_TESTING_OPTIONS */
-			bool force_kdk = false;
-#endif /* CONFIG_TESTING_OPTIONS */
 
 			wpa_hexdump(MSG_DEBUG, "RSNE: STA PMKID",
 				    &data.pmkid[i * PMKID_LEN], PMKID_LEN);
