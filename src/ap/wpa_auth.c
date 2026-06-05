@@ -3053,7 +3053,8 @@ SM_STATE(WPA_PTK, PTKSTART)
 				  wpa_auth_get_aa(sm),
 				  wpa_auth_get_spa(sm),
 				  &pmkid[2 + RSN_SELECTOR_LEN],
-				  sm->wpa_key_mgmt);
+				  sm->wpa_key_mgmt,
+				  RSN_HASH_NOT_SPECIFIED);
 			wpa_hexdump(MSG_DEBUG,
 				    "RSN: Message 1/4 PMKID derived from PMK",
 				    &pmkid[2 + RSN_SELECTOR_LEN], PMKID_LEN);
@@ -6861,7 +6862,8 @@ int wpa_auth_pmksa_add(struct wpa_state_machine *sm, const u8 *pmk,
 				 sm->PTK.kck, sm->PTK.kck_len,
 				 wpa_auth_get_aa(sm),
 				 wpa_auth_get_spa(sm), session_timeout,
-				 eapol, sm->wpa_key_mgmt))
+				 eapol, sm->wpa_key_mgmt,
+				 RSN_HASH_NOT_SPECIFIED))
 		return 0;
 
 	return -1;
@@ -6881,7 +6883,8 @@ int wpa_auth_pmksa_add_preauth(struct wpa_authenticator *wpa_auth,
 				 NULL, 0,
 				 wpa_auth->addr,
 				 sta_addr, session_timeout, eapol,
-				 WPA_KEY_MGMT_IEEE8021X))
+				 WPA_KEY_MGMT_IEEE8021X,
+				 RSN_HASH_NOT_SPECIFIED))
 		return 0;
 
 	return -1;
@@ -6911,7 +6914,8 @@ int wpa_auth_pmksa_add_sae(struct wpa_authenticator *wpa_auth, const u8 *addr,
 #endif /* CONFIG_IEEE80211BE */
 
 	entry = pmksa_cache_auth_add(pmksa, pmk, pmk_len, pmkid, NULL, 0,
-				     aa, addr, 0, NULL, akmp);
+				     aa, addr, 0, NULL, akmp,
+				     RSN_HASH_NOT_SPECIFIED);
 	if (!entry)
 		return -1;
 
@@ -6953,7 +6957,8 @@ int wpa_auth_pmksa_add2(struct wpa_authenticator *wpa_auth, const u8 *addr,
 	}
 #endif /* CONFIG_IEEE80211BE */
 	entry = pmksa_cache_auth_add(pmksa, pmk, pmk_len, pmkid, NULL, 0, aa,
-				     addr, session_timeout, NULL, akmp);
+				     addr, session_timeout, NULL, akmp,
+				     RSN_HASH_NOT_SPECIFIED);
 	if (!entry)
 		return -1;
 
@@ -7059,7 +7064,8 @@ wpa_auth_pmksa_create_entry(const u8 *aa, const u8 *spa, const u8 *pmk,
 	struct os_reltime now;
 
 	entry = pmksa_cache_auth_create_entry(pmk, pmk_len, pmkid, NULL, 0, aa,
-					      spa, 0, NULL, akmp);
+					      spa, 0, NULL, akmp,
+					      RSN_HASH_NOT_SPECIFIED);
 	if (!entry)
 		return NULL;
 
