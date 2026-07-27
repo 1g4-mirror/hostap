@@ -1614,7 +1614,7 @@ static int sae_derive_keys(struct sae_data *sae, const u8 *k)
 	os_memcpy(sae->pmkid, val, SAE_PMKID_LEN);
 #ifdef CONFIG_SAE_PK
 	if (sae->pk) {
-		os_memcpy(sae->tmp->kek, keys + hash_len + SAE_PMK_LEN,
+		os_memcpy(sae->tmp->kek, keys + hash_len + pmk_len,
 			  hash_len);
 		sae->tmp->kek_len = hash_len;
 		wpa_hexdump_key(MSG_DEBUG, "SAE: KEK for SAE-PK",
