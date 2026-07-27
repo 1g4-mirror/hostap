@@ -6638,6 +6638,12 @@ int fils_process_auth(struct wpa_sm *sm, const u8 *bssid, const u8 *data,
 		wpa_hexdump(MSG_DEBUG, "FILS: PMKID List",
 			    rsn.pmkid, rsn.num_pmkid * PMKID_LEN);
 
+		if (!sm->cur_pmksa) {
+			wpa_printf(MSG_DEBUG,
+				   "FILS: Unexpected PMKID in Authentication frame when no PMKSA was proposed");
+			goto fail;
+		}
+
 		if (rsn.num_pmkid != 1) {
 			wpa_printf(MSG_DEBUG, "FILS: Invalid PMKID selection");
 			goto fail;
