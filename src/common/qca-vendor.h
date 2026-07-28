@@ -23681,6 +23681,16 @@ enum qca_wlan_vendor_attr_feature_config_data {
  *   nor %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_UL_TX_BEAMFORMER_DISABLE is
  *   configured, the driver uses UL TX Beamformer capability based on default
  *   configuration and device support.
+ *
+ * @QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ENABLE_APPM:
+ * Enable AP power management only if the AP's Beacon and Probe Response
+ * frames include information that matches at least one entry from the
+ * configuration data list specified in
+ * %QCA_WLAN_VENDOR_ATTR_FEATURE_CONFIG_DATA_LIST.
+ * If no match is found, the driver must disallow AP power management
+ * establishment, even if the AP advertises AP power management support.
+ * If %QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ENABLE_APPM is not configured,
+ * the driver follows its default AP power management logic.
  */
 
 enum qca_wlan_vendor_feature_config_action {
@@ -23691,6 +23701,7 @@ enum qca_wlan_vendor_feature_config_action {
 	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_DISALLOW_NSS_GT_2 = 4,
 	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_UL_TX_BEAMFORMER_ENABLE = 5,
 	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_UL_TX_BEAMFORMER_DISABLE = 6,
+	QCA_WLAN_VENDOR_FEATURE_CONFIG_ACTION_ENABLE_APPM = 7,
 };
 
 /**
