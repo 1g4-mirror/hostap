@@ -265,9 +265,10 @@ static void add_ptk_variants(struct wlantest *wt, const u8 *ptk,
 static int add_ptk_file(struct wlantest *wt, const char *ptk_file)
 {
 	FILE *f;
-	u8 ptk[112];
+	u8 ptk[WPA_KCK_MAX_LEN + WPA_KEK_MAX_LEN + WPA_TK_MAX_LEN +
+	       WPA_KDK_MAX_LEN];
 	size_t ptk_len;
-	char buf[300], *pos;
+	char buf[2 * sizeof(ptk) + 10], *pos;
 	struct wlantest_ptk *p;
 
 	f = fopen(ptk_file, "r");
@@ -287,16 +288,14 @@ static int add_ptk_file(struct wlantest *wt, const char *ptk_file)
 			continue;
 
 		ptk_len /= 2;
-		if (ptk_len != 16 && ptk_len != 32 &&
-		    ptk_len != 48 && ptk_len != 64 &&
-		    ptk_len != 80 && ptk_len != 96 && ptk_len != 112)
+		if (ptk_len > sizeof(ptk))
 			continue;
 
 		if (hexstr2bin(buf, ptk, ptk_len) < 0)
 			continue;
 
-		if (ptk_len < 48) {
-			/* Raw TK (16 or 32 bytes) */
+		if (ptk_len == 16 || ptk_len == 32) {
+			/* Raw TK */
 			p = os_zalloc(sizeof(*p));
 			if (!p)
 				break;
