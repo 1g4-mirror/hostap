@@ -1719,6 +1719,13 @@ wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 	int rsne_type;
 	const u8 *ies_pos = wpa_bss_ie_ptr(bss);
 	size_t ies_len = bss->ie_len ? bss->ie_len : bss->beacon_ie_len;
+	bool sec_profile;
+
+	/*
+	 * An AKM that is negotiated through a Security Profile is not listed
+	 * in the AKM Suite List field of the RSNE.
+	 */
+	sec_profile = wpas_security_profile_match(wpa_s, ssid, bss, 0);
 
 	if (ieee802_11_parse_elems(ies_pos, ies_len, &elems, 0) ==
 	    ParseFailed) {
@@ -1798,7 +1805,7 @@ wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 
 	wpa_ie.key_mgmt &= ~(WPA_KEY_MGMT_PSK | WPA_KEY_MGMT_FT_PSK |
 			     WPA_KEY_MGMT_PSK_SHA256);
-	if (!(wpa_ie.key_mgmt & ssid->key_mgmt)) {
+	if (!sec_profile && !(wpa_ie.key_mgmt & ssid->key_mgmt)) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "MLD: No valid key management");
 		return false;
 	}
@@ -1817,7 +1824,7 @@ wpa_bss_validate_rsne_ml(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid,
 		*rsne_type_p = rsne_type;
 	} else {
 		/* Verify the neighbor given rsne_type_p and ref_rsne */
-		if (!(wpa_ie.key_mgmt & ref_rsne->key_mgmt)) {
+		if (!sec_profile && !(wpa_ie.key_mgmt & ref_rsne->key_mgmt)) {
 			wpa_dbg(wpa_s, MSG_DEBUG,
 				"MLD: Neighbor without common AKM");
 			return false;
