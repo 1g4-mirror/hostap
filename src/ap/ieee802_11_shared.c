@@ -1216,6 +1216,9 @@ static bool pqc_constraint_supported(struct hostapd_bss_config *conf, int pqc)
 {
 	size_t i;
 
+	if (!conf->num_supported_pqc_constraints)
+		return pqc == PQC_CONSTRAINT_MANDATORY;
+
 	for (i = 0; i < conf->num_supported_pqc_constraints; i++) {
 		if (conf->supported_pqc_constraints[i] == pqc)
 			return true;

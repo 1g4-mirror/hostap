@@ -983,6 +983,22 @@ static int wpa_config_parse_key_mgmt(const struct parse_data *data,
 		return 1;
 	wpa_printf(MSG_MSGDUMP, "key_mgmt: 0x%x", val);
 	ssid->key_mgmt = val;
+
+#ifdef CONFIG_PQC
+	/*
+	 * The PQC AKMs are usable only through a security profile, and every
+	 * PQC security profile requires these capabilities. See Table 9-bb14
+	 * as modified by 9.4.2.365 in Draft P802.11bt D1.0.
+	 */
+	if (wpa_key_mgmt_pqc(val)) {
+		ssid->ieee80211w = MGMT_FRAME_PROTECTION_REQUIRED;
+		ssid->pmksa_privacy = 1;
+#ifdef CONFIG_IEEE8021X_AUTH
+		ssid->eap_over_auth_frame = 1;
+#endif /* CONFIG_IEEE8021X_AUTH */
+	}
+#endif /* CONFIG_PQC */
+
 	return errors ? -1 : 0;
 }
 

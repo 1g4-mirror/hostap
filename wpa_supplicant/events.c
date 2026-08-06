@@ -788,8 +788,8 @@ bool wpas_pqc_constraint_match(struct wpa_ssid *ssid, u8 pqc)
 {
 	size_t i;
 
-	if (!ssid->supported_pqc_constraints)
-		return false;
+	if (!ssid->n_supported_pqc_constraints)
+		return pqc == PQC_CONSTRAINT_MANDATORY;
 
 	for (i = 0; i < ssid->n_supported_pqc_constraints; i++) {
 		if (ssid->supported_pqc_constraints[i] == pqc)
