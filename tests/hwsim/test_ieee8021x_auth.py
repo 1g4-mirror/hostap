@@ -683,6 +683,8 @@ def test_ieee8021x_auth_mlo_single_link(dev, apdev):
                           valid_links=1, active_links=1)
         hwsim_utils.test_connectivity(wpas, hapd0)
 
+        hwsim_utils.test_connectivity(wpas, hapd0)
+
 def test_ieee8021x_auth_mlo_two_links(dev, apdev):
     """IEEE 802.1X Authentication frames: MLO two-link EAP-TLS"""
     ssid = "test-ieee8021x-auth-mlo-2l"
