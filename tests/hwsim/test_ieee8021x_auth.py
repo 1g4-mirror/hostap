@@ -1025,7 +1025,37 @@ def test_ieee8021x_auth_pqc_config_errors(dev, apdev):
                                                                      value))
         hostapd.remove_bss(apdev[0])
 
-    hostapd.add_ap(apdev[0], base)
+    hapd = hostapd.add_ap(apdev[0], base, no_enable=True)
+
+    for val in ["", "99", "-1", "2 99", "2x", "foo", "2,3"]:
+        if "FAIL" not in hapd.request("SET supported_pqc_constraints " + val):
+            raise Exception("Unexpected SET success: '%s'" % val)
+
+    # Extra separators must not add a constraint of their own
+    if "OK" not in hapd.request("SET supported_pqc_constraints  2   3 "):
+        raise Exception("SET failed for a valid constraint list")
+
+    hapd.enable()
+
+def test_ieee8021x_auth_pqc_constraints_parsing(dev, apdev):
+    """IEEE 802.1X Authentication frames: PQC constraint list parsing"""
+    key_mgmt = dev[0].get_capability("key_mgmt")
+    if "EAP-PQC" not in key_mgmt:
+        raise HwsimSkip(f"EAP-PQC not supported: {key_mgmt}")
+
+    id = dev[0].add_network()
+
+    for val in ["99", "-1", "2 99", "2x", "foo", "2,3"]:
+        if "FAIL" not in dev[0].request("SET_NETWORK %d supported_pqc_constraints %s" % (id, val)):
+            raise Exception("Unexpected SET_NETWORK success: '%s'" % val)
+
+    # Extra separators must not add a constraint of their own
+    if "OK" not in dev[0].request("SET_NETWORK %d supported_pqc_constraints  2   3 " % id):
+        raise Exception("SET_NETWORK failed for a valid constraint list")
+
+    val = dev[0].get_network(id, "supported_pqc_constraints")
+    if val != "2 3":
+        raise Exception("Unexpected supported_pqc_constraints: " + str(val))
 
 def test_ieee8021x_auth_connect_disconnect_reconnect(dev, apdev):
     """IEEE 802.1X Authentication frames: non-MLO connect/disconnect/reconnect"""
