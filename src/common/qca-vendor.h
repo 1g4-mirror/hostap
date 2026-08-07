@@ -12679,6 +12679,9 @@ enum qca_wlan_vendor_attr_twt_setup {
  * @QCA_WLAN_VENDOR_TWT_STATUS_MLO_LINK_INACTIVE: FW terminated the TWT session
  * due to the link inactivation triggered on the TWT session established
  * link. Used on the TWT_TERMINATE notification from the driver.
+ * @QCA_WLAN_VENDOR_TWT_STATUS_MAC_MIGRATION_TERMINATE: FW terminated the TWT
+ * session due to MAC migration. Used on the TWT_TERMINATE notification from
+ * the driver.
  */
 enum qca_wlan_vendor_twt_status {
 	QCA_WLAN_VENDOR_TWT_STATUS_OK = 0,
@@ -12712,6 +12715,7 @@ enum qca_wlan_vendor_twt_status {
 	QCA_WLAN_VENDOR_TWT_STATUS_TIMEOUT = 28,
 	QCA_WLAN_VENDOR_TWT_STATUS_CHAN_SWITCH_24GHZ = 29,
 	QCA_WLAN_VENDOR_TWT_STATUS_MLO_LINK_INACTIVE = 30,
+	QCA_WLAN_VENDOR_TWT_STATUS_MAC_MIGRATION_TERMINATE = 31,
 };
 
 /**
