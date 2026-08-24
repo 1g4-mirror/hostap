@@ -3765,7 +3765,8 @@ const u8 * get_basic_mle_eml_capa(const u8 *buf, size_t len)
 	size_t common_info_limit;
 	u8 common_info_len;
 
-	if (len < MULTI_LINK_CONTROL_LEN)
+	/* The Common Info Length field follows the Multi-Link Control field */
+	if (len < MULTI_LINK_CONTROL_LEN + 1)
 		return NULL;
 
 	ctrl = le_to_host16(ml->ml_control);
@@ -3810,7 +3811,8 @@ int get_basic_mle_link_id(const u8 *buf, size_t len)
 	u8 common_info_len;
 	u8 link_id;
 
-	if (len < MULTI_LINK_CONTROL_LEN)
+	/* The Common Info Length field follows the Multi-Link Control field */
+	if (len < MULTI_LINK_CONTROL_LEN + 1)
 		return -1;
 
 	ctrl = le_to_host16(ml->ml_control);
