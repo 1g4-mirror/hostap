@@ -56,9 +56,18 @@ static inline void eap_peer_unregister_methods(void)
 {
 }
 
+/**
+ * This stub must match the return convention of the full function of the
+ * same name, which is enabled when CONFIG_IEEE8021X_EAPOL is enabled.
+ *
+ * Returns: A %NULL-terminated array of zero strings in this implementation,
+ * as IEEE8021X_EAPOL is disabled.
+ */
 static inline char ** eap_get_names_as_string_array(size_t *num)
 {
-	return NULL;
+	if (num)
+		*num = 0;
+	return os_calloc(1, sizeof(char *));
 }
 
 #endif /* IEEE8021X_EAPOL */
