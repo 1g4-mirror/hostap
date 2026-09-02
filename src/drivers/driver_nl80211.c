@@ -15146,12 +15146,15 @@ static int nl80211_write_to_file(const char *name, unsigned int val)
 static int nl80211_configure_data_frame_filters(void *priv, u32 filter_flags)
 {
 	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
 	char path[128];
 	int ret;
 
-	/* P2P/NAN-Device has no netdev that can (or should) be configured here
+	/* P2P/NAN-Device has no netdev that can (or should) be configured here.
+	 * Use the cached nlmode instead of NL80211_CMD_GET_INTERFACE to reduce
+	 * caller time.
 	 */
-	if (!nl80211_is_netdev_iftype(nl80211_get_ifmode(bss)))
+	if (!nl80211_is_netdev_iftype(drv->nlmode))
 		return 0;
 
 	wpa_printf(MSG_DEBUG, "nl80211: Data frame filter flags=0x%x",
