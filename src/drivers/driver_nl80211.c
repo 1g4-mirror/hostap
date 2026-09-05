@@ -11440,22 +11440,26 @@ static int wpa_driver_nl80211_get_survey(void *priv, unsigned int freq)
 
 static void nl80211_set_rekey_info(void *priv, const u8 *kek, size_t kek_len,
 				   const u8 *kck, size_t kck_len,
-				   const u8 *replay_ctr)
+				   const u8 *replay_ctr, int key_mgmt)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct nlattr *replay_nested;
 	struct nl_msg *msg;
 	int ret;
+	int akm;
 
 	if (!drv->set_rekey_offload)
 		return;
+
+	akm = wpa_akm_to_suite(key_mgmt);
 
 	wpa_printf(MSG_DEBUG, "nl80211: Set rekey offload");
 	if (!(msg = nl80211_bss_msg(bss, 0, NL80211_CMD_SET_REKEY_OFFLOAD)) ||
 	    !(replay_nested = nla_nest_start(msg, NL80211_ATTR_REKEY_DATA)) ||
 	    nla_put(msg, NL80211_REKEY_DATA_KEK, kek_len, kek) ||
 	    (kck_len && nla_put(msg, NL80211_REKEY_DATA_KCK, kck_len, kck)) ||
+	    (akm && nla_put_u32(msg, NL80211_REKEY_DATA_AKM, akm)) ||
 	    nla_put(msg, NL80211_REKEY_DATA_REPLAY_CTR, NL80211_REPLAY_CTR_LEN,
 		    replay_ctr)) {
 		nl80211_nlmsg_clear(msg);

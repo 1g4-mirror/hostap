@@ -4992,6 +4992,7 @@ struct wpa_driver_ops {
 	 * @kck: Current KCK
 	 * @kck_len: KCK length in octets
 	 * @replay_ctr: Current EAPOL-Key Replay Counter
+	 * @key_mgmt: Selected key management suite
 	 *
 	 * This optional function can be used to provide information for the
 	 * driver/firmware to process EAPOL-Key frames in Group Key Handshake
@@ -4999,7 +5000,7 @@ struct wpa_driver_ops {
 	 */
 	void (*set_rekey_info)(void *priv, const u8 *kek, size_t kek_len,
 			       const u8 *kck, size_t kck_len,
-			       const u8 *replay_ctr);
+			       const u8 *replay_ctr, int key_mgmt);
 
 	/**
 	 * sta_assoc - Station association indication

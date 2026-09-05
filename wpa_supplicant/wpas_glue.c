@@ -1283,7 +1283,8 @@ static void wpa_supplicant_set_rekey_offload(void *ctx,
 {
 	struct wpa_supplicant *wpa_s = ctx;
 
-	wpa_drv_set_rekey_info(wpa_s, kek, kek_len, kck, kck_len, replay_ctr);
+	wpa_drv_set_rekey_info(wpa_s, kek, kek_len, kck, kck_len, replay_ctr,
+			       wpa_s->key_mgmt);
 }
 
 
