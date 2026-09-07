@@ -2945,7 +2945,8 @@ static int nl80211_mgmt_subscribe_non_ap(struct i802_bss *bss)
 #endif /* CONFIG_P2P */
 #ifdef CONFIG_NAN_USD
 	/* NAN SDF Public Action */
-	if (nl80211_register_action_frame2(bss, NAN_SDF_ACTION, 6, true) < 0) {
+	if (!drv->multicast_registrations ||
+	    nl80211_register_action_frame2(bss, NAN_SDF_ACTION, 6, true) < 0) {
 		/* fallback to non-multicast */
 		if (nl80211_register_action_frame2(bss, NAN_SDF_ACTION, 6,
 						   false) < 0)
