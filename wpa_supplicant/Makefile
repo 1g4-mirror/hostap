@@ -1284,18 +1284,18 @@ endif
 
 ifeq ($(CONFIG_TLS), openssl)
 CFLAGS += -DCRYPTO_RSA_OAEP_SHA256
-OPENSSL_PREFIX ?= $(wildcard /usr/local/openssl-3.5.0)
-ifneq ($(OPENSSL_PREFIX),)
-CFLAGS += -I$(OPENSSL_PREFIX)/include
-LDFLAGS += -L$(OPENSSL_PREFIX)/lib -Wl,-rpath,$(OPENSSL_PREFIX)/lib
-endif
-ifdef NEED_OPENSSL_3_5
-ifeq ($(OPENSSL_PREFIX),)
-ifeq ($(shell pkg-config --atleast-version=3.5 openssl 2>/dev/null && echo yes),)
-$(error CONFIG_PQC requires OpenSSL >= 3.5. Set OPENSSL_PREFIX or install OpenSSL 3.5)
-endif
-endif
-endif
+#OPENSSL_PREFIX ?= $(wildcard /usr/local/openssl-3.5.0)
+#ifneq ($(OPENSSL_PREFIX),)
+#CFLAGS += -I$(OPENSSL_PREFIX)/include
+#LDFLAGS += -L$(OPENSSL_PREFIX)/lib -Wl,-rpath,$(OPENSSL_PREFIX)/lib
+#endif
+#ifdef NEED_OPENSSL_3_5
+#ifeq ($(OPENSSL_PREFIX),)
+#ifeq ($(shell pkg-config --atleast-version=3.5 openssl 2>/dev/null && echo yes),)
+#$(error CONFIG_PQC requires OpenSSL >= 3.5. Set OPENSSL_PREFIX or install OpenSSL 3.5)
+#endif
+#endif
+#endif
 ifdef TLS_FUNCS
 CFLAGS += -DEAP_TLS_OPENSSL
 OBJS += ../src/crypto/tls_openssl.o
