@@ -270,8 +270,8 @@ struct json_token * json_parse(const char *data, size_t data_len)
 	struct json_token *root = NULL, *curr_token = NULL, *token = NULL;
 	const char *pos, *end;
 	char *str;
-	int num;
-	double dnum;
+	int num = 0;
+	double dnum = 0;
 	bool is_double;
 	unsigned int depth = 0;
 	unsigned int tokens = 0;
