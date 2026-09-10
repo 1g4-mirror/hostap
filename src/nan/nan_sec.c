@@ -596,7 +596,7 @@ int nan_sec_rx(struct nan_data *nan, struct nan_peer *peer,
 	size_t shared_key_desc_len;
 	u16 info, desc, key_data_len;
 	size_t total_len;
-	u8 instance_id, cipher, capab, gtk_csid = NAN_CS_NONE;
+	u8 instance_id = 0, cipher, capab = 0, gtk_csid = NAN_CS_NONE;
 	u8 *pos;
 	int ret;
 
