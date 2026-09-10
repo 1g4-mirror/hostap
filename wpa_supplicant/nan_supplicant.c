@@ -2727,7 +2727,7 @@ wpas_nan_fill_ndp_schedule_chan(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_TESTING_OPTIONS */
 
 	tbm->duration = wpa_s->nan_capa.slot_duration >> 5;
-	tbm->period = ffs(wpa_s->nan_capa.schedule_period) - 7;
+	tbm->period = os_ffs(wpa_s->nan_capa.schedule_period) - 7;
 	tbm->offset = 0;
 	tbm->len = bitmap_len;
 	os_memcpy(tbm->bitmap, bitmap_data, bitmap_len);

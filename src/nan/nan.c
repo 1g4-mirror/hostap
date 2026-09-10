@@ -3140,7 +3140,7 @@ nan_peer_get_committed_avail_add(const struct nan_data *nan,
 		return;
 	}
 
-	idx = ffs(le_to_host16(bc_chan->chan_bitmap)) - 1;
+	idx = os_ffs(le_to_host16(bc_chan->chan_bitmap)) - 1;
 	if (idx < 0) {
 		wpa_printf(MSG_DEBUG,
 			   "NAN: No channel found in chan_bitmap 0x%04x for oper_class %u",
@@ -3168,7 +3168,7 @@ nan_peer_get_committed_avail_add(const struct nan_data *nan,
 			   op->op_class);
 		return;
 	} else {
-		idx = ffs(bc_chan->pri_chan_bitmap) - 1;
+		idx = os_ffs(bc_chan->pri_chan_bitmap) - 1;
 		if (idx < 0) {
 			wpa_printf(MSG_DEBUG,
 				   "NAN: No primary channel found in pri_chan_bitmap 0x%04x",

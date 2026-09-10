@@ -1011,7 +1011,7 @@ int nan_add_avail_attrs(struct nan_data *nan, u8 sequence_id,
 
 	while (map_ids_bitmap) {
 		struct nan_channels pot_chans;
-		u8 map_id = ffs(map_ids_bitmap) - 1;
+		u8 map_id = os_ffs(map_ids_bitmap) - 1;
 		u16 ctrl = map_id << NAN_AVAIL_CTRL_MAP_ID_POS |
 			NAN_AVAIL_CTRL_POTENTIAL_CHANGED;
 
@@ -1539,7 +1539,7 @@ static int nan_get_control_channel(struct nan_data *nan, u8 op_class,
 	if (!op || op_class > 130)
 		return -1;
 
-	idx = ffs(cbm) - 1;
+	idx = os_ffs(cbm) - 1;
 	if (idx < 0) {
 		wpa_printf(MSG_DEBUG,
 			   "NAN: No channel found in chan_bitmap 0x%04x for oper_class %u",
@@ -1575,7 +1575,7 @@ static int nan_get_control_channel(struct nan_data *nan, u8 op_class,
 		return -1;
 	}
 
-	idx = ffs(pri_cbm) - 1;
+	idx = os_ffs(pri_cbm) - 1;
 
 	if (op->bw == BW80 || op->bw == BW80P80)
 		return freq - 30 + idx * 20;
