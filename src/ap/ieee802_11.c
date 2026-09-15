@@ -3062,6 +3062,23 @@ static void handle_auth_802_1x(struct hostapd_data *hapd, struct sta_info *sta,
 	const u8 *end;
 	struct wpabuf *reply;
 
+	/*
+	 * A peer that does not receive the response in time might retransmit
+	 * the Authentication frame with a new sequence number. Since the local
+	 * state machine has already advanced, reprocessing such a frame would
+	 * fail (sending a response to the peer that would terminate the
+	 * connection). Ignore retransmissions of old Authentication frames.
+	 */
+	if (auth_transaction == 1) {
+		sta->eap_auth_data.auth_transaction = 0;
+	} else if (auth_transaction <= sta->eap_auth_data.auth_transaction) {
+		wpa_printf(MSG_DEBUG,
+			   "IEEE 802.1X: Drop retransmitted Authentication frame (transaction %u <= %u)",
+			   auth_transaction,
+			   sta->eap_auth_data.auth_transaction);
+		return;
+	}
+
 	if (len < 2) {
 		wpa_printf(MSG_INFO, "Missing Encapsulation Length field");
 		resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
