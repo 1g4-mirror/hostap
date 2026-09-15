@@ -4,20 +4,23 @@
 # This software may be distributed under the terms of the BSD license.
 # See README for more details.
 
+import datetime
 import os
 try:
-    import OpenSSL
-    openssl_imported = True
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    cryptography_imported = True
 except ImportError:
-    openssl_imported = False
+    cryptography_imported = False
 
 from utils import HwsimSkip
 import hostapd
 from test_ap_eap import check_domain_suffix_match, check_altsubject_match_support, check_domain_match
 
 def check_cert_check_support():
-    if not openssl_imported:
-        raise HwsimSkip("OpenSSL python method not available")
+    if not cryptography_imported:
+        raise HwsimSkip("cryptography python module not available")
 
 def start_hapd(apdev, server_cert="auth_serv/server.pem"):
     params = {"ssid": "cert-check", "wpa": "2", "wpa_key_mgmt": "WPA-EAP",
@@ -32,47 +35,51 @@ def start_hapd(apdev, server_cert="auth_serv/server.pem"):
 
 def load_certs():
     with open("auth_serv/ca.pem", "rb") as f:
-        res = f.read()
-        cacert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                 res)
+        cacert = x509.load_pem_x509_certificate(f.read())
 
     with open("auth_serv/ca-key.pem", "rb") as f:
-        res = f.read()
-        cakey = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, res)
+        cakey = serialization.load_pem_private_key(f.read(), None)
 
     with open("auth_serv/server.pem", "rb") as f:
-        res = f.read()
-        servercert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, res)
+        servercert = x509.load_pem_x509_certificate(f.read())
 
     return cacert, cakey, servercert
 
-def start_cert(servercert, cacert, cn='server.w1.fi', v3=True):
-    cert = OpenSSL.crypto.X509()
-    cert.set_serial_number(12345)
-    cert.gmtime_adj_notBefore(-10)
-    cert.gmtime_adj_notAfter(1000)
-    cert.set_pubkey(servercert.get_pubkey())
-    dn = cert.get_subject()
-    dn.CN = cn
-    cert.set_subject(dn)
-    if v3:
-        cert.set_version(2)
-        cert.add_extensions([
-            OpenSSL.crypto.X509Extension(b"basicConstraints", True,
-                                         b"CA:FALSE"),
-            OpenSSL.crypto.X509Extension(b"subjectKeyIdentifier", False,
-                                         b"hash", subject=cert),
-            OpenSSL.crypto.X509Extension(b"authorityKeyIdentifier", False,
-                                         b"keyid:always", issuer=cacert),
-        ])
-    return cert
+def authority_key_identifier(cacert):
+    # Mimic OpenSSL's "keyid:always": use the issuer's subjectKeyIdentifier
+    # when present, otherwise derive the key id from its public key.
+    try:
+        ski = cacert.extensions.get_extension_for_class(
+            x509.SubjectKeyIdentifier).value
+        return x509.AuthorityKeyIdentifier.from_issuer_subject_key_identifier(ski)
+    except x509.ExtensionNotFound:
+        return x509.AuthorityKeyIdentifier.from_issuer_public_key(cacert.public_key())
+
+def add_server_cert_extensions(builder, pubkey, cacert):
+    builder = builder.add_extension(
+        x509.BasicConstraints(ca=False, path_length=None), critical=True)
+    builder = builder.add_extension(
+        x509.SubjectKeyIdentifier.from_public_key(pubkey), critical=False)
+    builder = builder.add_extension(authority_key_identifier(cacert),
+                                    critical=False)
+    return builder
+
+def start_cert(servercert, cacert, cn='server.w1.fi'):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    builder = x509.CertificateBuilder()
+    builder = builder.serial_number(12345)
+    builder = builder.not_valid_before(now - datetime.timedelta(seconds=10))
+    builder = builder.not_valid_after(now + datetime.timedelta(seconds=1000))
+    builder = builder.public_key(servercert.public_key())
+    builder = builder.subject_name(
+        x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, cn)]))
+    return add_server_cert_extensions(builder, servercert.public_key(), cacert)
 
 def sign_cert(cert, cert_file, cakey, cacert):
-    cert.set_issuer(cacert.get_subject())
-    cert.sign(cakey, "sha256")
+    cert = cert.issuer_name(cacert.subject)
+    signed = cert.sign(private_key=cakey, algorithm=hashes.SHA256())
     with open(cert_file, 'wb') as f:
-        f.write(OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                cert))
+        f.write(signed.public_bytes(serialization.Encoding.PEM))
 
 def check_connect(dev, fail=False, wait_error=None, **kwargs):
     dev.connect("cert-check", key_mgmt="WPA-EAP", eap="TTLS",
@@ -98,14 +105,65 @@ def check_connect(dev, fail=False, wait_error=None, **kwargs):
     dev.wait_disconnected()
     dev.dump_monitor()
 
+def der_len(n):
+    if n < 0x80:
+        return bytes([n])
+    b = n.to_bytes((n.bit_length() + 7) // 8, 'big')
+    return bytes([0x80 | len(b)]) + b
+
+def der_tlv(tag, value):
+    return bytes([tag]) + der_len(len(value)) + value
+
+def der_integer(n):
+    content = n.to_bytes(max((n.bit_length() + 7) // 8, 1), 'big')
+    if content[0] & 0x80:
+        content = b'\x00' + content
+    return der_tlv(0x02, content)
+
+# AlgorithmIdentifier for sha256WithRSAEncryption (1.2.840.113549.1.1.11).
+SHA256_RSA_ALG_ID = bytes.fromhex('300d06092a864886f70d01010b0500')
+
+def sign_v1_cert(cert_file, cn='server.w1.fi', key_file="auth_serv/server.key",
+                 ca_cert="auth_serv/ca.pem", ca_key="auth_serv/ca-key.pem"):
+    # cryptography's CertificateBuilder always emits a v3 certificate and the
+    # "openssl x509 -req" is version-dependent, so do it here manually
+    with open(key_file, "rb") as f:
+        pkey = serialization.load_pem_private_key(f.read(), None)
+    with open(ca_cert, "rb") as f:
+        cacert = x509.load_pem_x509_certificate(f.read())
+    with open(ca_key, "rb") as f:
+        cakey = serialization.load_pem_private_key(f.read(), None)
+    if not isinstance(cakey, rsa.RSAPrivateKey):
+        raise Exception("sign_v1_cert() only supports an RSA ca_key")
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+    not_before = now - datetime.timedelta(seconds=10)
+    not_after = now + datetime.timedelta(seconds=1000)
+    subject = x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, cn)])
+    pubkey_der = pkey.public_key().public_bytes(
+        serialization.Encoding.DER,
+        serialization.PublicFormat.SubjectPublicKeyInfo)
+    validity = der_tlv(0x30,
+        der_tlv(0x17, not_before.strftime('%y%m%d%H%M%SZ').encode()) +
+        der_tlv(0x17, not_after.strftime('%y%m%d%H%M%SZ').encode()))
+    tbs = der_tlv(0x30, der_integer(12345) + SHA256_RSA_ALG_ID +
+                  cacert.subject.public_bytes() + validity +
+                  subject.public_bytes() + pubkey_der)
+    signature = cakey.sign(tbs, padding.PKCS1v15(), hashes.SHA256())
+    cert_der = der_tlv(0x30, tbs + SHA256_RSA_ALG_ID +
+                       der_tlv(0x03, b'\x00' + signature))
+
+    signed = x509.load_der_x509_certificate(cert_der)
+    if signed.version != x509.Version.v1:
+        raise Exception("sign_v1_cert() did not produce an X.509v1 certificate")
+    with open(cert_file, "wb") as f:
+        f.write(signed.public_bytes(serialization.Encoding.PEM))
+
 def test_cert_check_basic(dev, apdev, params):
-    """Basic test with generated X.509 server certificate"""
+    """Certificate check with a plain X.509v1 server certificate (no extensions)"""
     check_cert_check_support()
     cert_file = os.path.join(params['logdir'], "cert_check_basic.pem")
-    cacert, cakey, servercert = load_certs()
-
-    cert = start_cert(servercert, cacert, v3=False)
-    sign_cert(cert, cert_file, cakey, cacert)
+    sign_v1_cert(cert_file)
     hapd = start_hapd(apdev[0], server_cert=cert_file)
     check_connect(dev[0])
 
@@ -129,10 +187,10 @@ def test_cert_check_dnsname(dev, apdev, params):
     cacert, cakey, servercert = load_certs()
 
     cert = start_cert(servercert, cacert, cn="server")
-    dns = ["DNS:one.example.com", "DNS:two.example.com",
-           "DNS:three.example.com"]
-    cert.add_extensions([OpenSSL.crypto.X509Extension(b"subjectAltName", False,
-                                                      ",".join(dns).encode())])
+    dns = ["one.example.com", "two.example.com", "three.example.com"]
+    cert = cert.add_extension(
+        x509.SubjectAlternativeName([x509.DNSName(d) for d in dns]),
+        critical=False)
     sign_cert(cert, cert_file, cakey, cacert)
     hapd = start_hapd(apdev[0], server_cert=cert_file)
     check_connect(dev[0])
@@ -186,10 +244,10 @@ def test_cert_check_dnsname_wildcard(dev, apdev, params):
     cacert, cakey, servercert = load_certs()
 
     cert = start_cert(servercert, cacert, cn="server")
-    dns = ["DNS:*.one.example.com", "DNS:two.example.com",
-           "DNS:*.three.example.com"]
-    cert.add_extensions([OpenSSL.crypto.X509Extension(b"subjectAltName", False,
-                                                      ",".join(dns).encode())])
+    dns = ["*.one.example.com", "two.example.com", "*.three.example.com"]
+    cert = cert.add_extension(
+        x509.SubjectAlternativeName([x509.DNSName(d) for d in dns]),
+        critical=False)
     sign_cert(cert, cert_file, cakey, cacert)
     hapd = start_hapd(apdev[0], server_cert=cert_file)
     check_connect(dev[0])
@@ -242,10 +300,10 @@ def test_cert_check_dnsname_alt(dev, apdev, params):
     cacert, cakey, servercert = load_certs()
 
     cert = start_cert(servercert, cacert, cn="server")
-    dns = ["DNS:*.one.example.com", "DNS:two.example.com",
-           "DNS:*.three.example.com"]
-    cert.add_extensions([OpenSSL.crypto.X509Extension(b"subjectAltName", False,
-                                                      ",".join(dns).encode())])
+    dns = ["*.one.example.com", "two.example.com", "*.three.example.com"]
+    cert = cert.add_extension(
+        x509.SubjectAlternativeName([x509.DNSName(d) for d in dns]),
+        critical=False)
     sign_cert(cert, cert_file, cakey, cacert)
     hapd = start_hapd(apdev[0], server_cert=cert_file)
 

@@ -29,10 +29,11 @@ from wpasupplicant import WpaSupplicant
 from test_ap_psk import check_mib, find_wpas_process, read_process_memory, verify_not_present, get_key_locations, set_test_assoc_ie
 
 try:
-    import OpenSSL
-    openssl_imported = True
+    from cryptography import x509
+    from cryptography.x509.oid import NameOID
+    cryptography_imported = True
 except ImportError:
-    openssl_imported = False
+    cryptography_imported = False
 
 def check_hlr_auc_gw_support():
     if not os.path.exists("/tmp/hlr_auc_gw.sock"):
@@ -7416,8 +7417,8 @@ def test_eap_fast_ext_cert_check(dev, apdev):
 
 def run_ext_cert_check(dev, apdev, net_id):
     check_ext_cert_check_support(dev[0])
-    if not openssl_imported:
-        raise HwsimSkip("OpenSSL python method not available")
+    if not cryptography_imported:
+        raise HwsimSkip("cryptography python module not available")
 
     params = hostapd.wpa2_eap_params(ssid="test-wpa2-eap")
     hapd = hostapd.add_ap(apdev[0], params)
@@ -7451,14 +7452,17 @@ def run_ext_cert_check(dev, apdev, net_id):
     if 1 not in certs:
         raise Exception("Server certificate issuer not received")
 
-    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_ASN1,
-                                           certs[0])
-    cn = cert.get_subject().commonName
+    def cert_cn(der):
+        cert = x509.load_der_x509_certificate(der)
+        cn = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+        if not cn:
+            raise Exception("No CN in certificate")
+        return cn[0].value
+
+    cn = cert_cn(certs[0])
     logger.info("Server certificate CN=" + cn)
 
-    issuer = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_ASN1,
-                                             certs[1])
-    icn = issuer.get_subject().commonName
+    icn = cert_cn(certs[1])
     logger.info("Issuer certificate CN=" + icn)
 
     if cn != "server.w1.fi":

@@ -27,12 +27,17 @@ from hwsim import HWSimRadio
 from utils import *
 from wpasupplicant import WpaSupplicant
 from wlantest import WlantestCapture
+from test_cert_check import add_server_cert_extensions
 
+import datetime
 try:
-    import OpenSSL
-    openssl_imported = True
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
+    cryptography_imported = True
 except ImportError:
-    openssl_imported = False
+    cryptography_imported = False
 
 def check_dpp_capab(dev, brainpool=False, min_ver=1):
     if "UNKNOWN COMMAND" in dev.request("DPP_BOOTSTRAP_GET_URI 0"):
@@ -1491,39 +1496,20 @@ def test_dpp_config_error_legacy_too_short_psk(dev, apdev):
     conf = '{"wi-fi_tech":"infra","discovery":{"ssid":"test"},"cred":{"akm":"psk","psk_hex":"%s"}}' % (31*"12")
     run_dpp_config_error(dev, apdev, conf)
 
-def get_der_int_32(val):
-    a, b = struct.unpack('BB', val[0:2])
-    if a != 0x02:
-        raise Exception("Invalid DER encoding of INTEGER")
-    if b > len(val) - 2:
-        raise Exception("Invalid length of INTEGER (truncated)")
-    val = val[2:]
-    if b == 32:
-        r = val[0:32]
-    elif b == 33:
-        if val[0] != 0:
-            raise Exception("Too large INTEGER (32)")
-        r = val[1:33]
-    elif b < 32:
-        r = (32 - b) * b'\x00' + val[0:b]
-    else:
-        raise Exception("Invalid length of INTEGER (32): %d" % b)
-    return r, val[b:]
+if cryptography_imported:
+    _ecdsa_hash_algs = {"sha256": hashes.SHA256(),
+                        "sha384": hashes.SHA384(),
+                        "sha512": hashes.SHA512()}
 
 def ecdsa_sign(pkey, message, alg="sha256"):
-    sign = OpenSSL.crypto.sign(pkey, message, alg)
+    if isinstance(message, str):
+        message = message.encode()
+    sign = pkey.sign(message, ec.ECDSA(_ecdsa_hash_algs[alg]))
     logger.debug("sign=" + binascii.hexlify(sign).decode())
-    a, b = struct.unpack('BB', sign[0:2])
-    if a != 0x30:
-        raise Exception("Invalid DER encoding of ECDSA signature")
-    if b != len(sign) - 2:
-        raise Exception("Invalid length of ECDSA signature")
-    sign = sign[2:]
-
-    r, sign = get_der_int_32(sign)
-    s, sign = get_der_int_32(sign)
-    if len(sign) != 0:
-        raise Exception("Extra data at the end of ECDSA signature")
+    r, s = decode_dss_signature(sign)
+    size = (pkey.curve.key_size + 7) // 8
+    r = r.to_bytes(size, 'big')
+    s = s.to_bytes(size, 'big')
 
     logger.info("r=" + binascii.hexlify(r).decode())
     logger.info("s=" + binascii.hexlify(s).decode())
@@ -1541,10 +1527,9 @@ p256_pub_key_y = binascii.unhexlify("c9e75a76984a169f4dcde9746f4c2f86ed63e897d36
 def run_dpp_config_connector(dev, apdev, expiry=None, payload=None,
                              skip_net_access_key_mismatch=True,
                              conf_failure=True):
-    if not openssl_imported:
-        raise HwsimSkip("OpenSSL python method not available")
-    pkey = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM,
-                                          p256_priv_key)
+    if not cryptography_imported:
+        raise HwsimSkip("cryptography python module not available")
+    pkey = serialization.load_pem_private_key(p256_priv_key.encode(), None)
     x = base64.urlsafe_b64encode(p256_pub_key_x).decode().rstrip('=')
     y = base64.urlsafe_b64encode(p256_pub_key_y).decode().rstrip('=')
 
@@ -7441,27 +7426,17 @@ def test_dpp_qr_code_auth_rand_mac_addr(dev, apdev):
         dev[0].set("gas_rand_mac_addr", "0")
 
 def dpp_sign_cert(cacert, cakey, csr_der):
-    csr = OpenSSL.crypto.load_certificate_request(OpenSSL.crypto.FILETYPE_ASN1,
-                                                  csr_der)
-    cert = OpenSSL.crypto.X509()
-    cert.set_serial_number(12345)
-    cert.gmtime_adj_notBefore(-10)
-    cert.gmtime_adj_notAfter(100000)
-    cert.set_pubkey(csr.get_pubkey())
-    dn = csr.get_subject()
-    cert.set_subject(dn)
-    cert.set_version(2)
-    cert.add_extensions([
-        OpenSSL.crypto.X509Extension(b"basicConstraints", True,
-                                     b"CA:FALSE"),
-        OpenSSL.crypto.X509Extension(b"subjectKeyIdentifier", False,
-                                     b"hash", subject=cert),
-        OpenSSL.crypto.X509Extension(b"authorityKeyIdentifier", False,
-                                     b"keyid:always", issuer=cacert),
-    ])
-    cert.set_issuer(cacert.get_subject())
-    cert.sign(cakey, "sha256")
-    return cert
+    csr = x509.load_der_x509_csr(csr_der)
+    now = datetime.datetime.now(datetime.timezone.utc)
+    builder = x509.CertificateBuilder()
+    builder = builder.subject_name(csr.subject)
+    builder = builder.issuer_name(cacert.subject)
+    builder = builder.public_key(csr.public_key())
+    builder = builder.serial_number(12345)
+    builder = builder.not_valid_before(now - datetime.timedelta(seconds=10))
+    builder = builder.not_valid_after(now + datetime.timedelta(seconds=100000))
+    builder = add_server_cert_extensions(builder, csr.public_key(), cacert)
+    return builder.sign(private_key=cakey, algorithm=hashes.SHA256())
 
 def test_dpp_enterprise(dev, apdev, params):
     """DPP and enterprise EAP-TLS provisioning"""
@@ -7488,8 +7463,8 @@ def dpp_enterprise(dev, apdev, params, ca_delay):
         dev[0].set("dpp_config_processing", "0", allow_fail=True)
 
 def run_dpp_enterprise(dev, apdev, params, ca_delay=0):
-    if not openssl_imported:
-        raise HwsimSkip("OpenSSL python method not available")
+    if not cryptography_imported:
+        raise HwsimSkip("cryptography python module not available")
     check_dpp_capab(dev[0])
     check_dpp_capab(dev[1])
 
@@ -7509,13 +7484,10 @@ def run_dpp_enterprise(dev, apdev, params, ca_delay=0):
     hapd = hostapd.add_ap(apdev[0], params)
 
     with open("auth_serv/ec-ca.pem", "rb") as f:
-        res = f.read()
-        cacert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                 res)
+        cacert = x509.load_pem_x509_certificate(f.read())
 
     with open("auth_serv/ec-ca.key", "rb") as f:
-        res = f.read()
-        cakey = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, res)
+        cakey = serialization.load_pem_private_key(f.read(), None)
 
     conf_id = dev[1].dpp_configurator_add()
     id0 = dev[0].dpp_bootstrap_gen(chan="81/1", mac=True)
@@ -7544,8 +7516,7 @@ def run_dpp_enterprise(dev, apdev, params, ca_delay=0):
 
     cert = dpp_sign_cert(cacert, cakey, csr)
     with open(cert_file, 'wb') as f:
-        f.write(OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                cert))
+        f.write(cert.public_bytes(serialization.Encoding.PEM))
     subprocess.check_call(['openssl', 'crl2pkcs7', '-nocrl',
                            '-certfile', cert_file,
                            '-certfile', 'auth_serv/ec-ca.pem',
@@ -7641,8 +7612,8 @@ def test_dpp_enterprise_reject(dev, apdev, params):
 
 def test_dpp_enterprise_tcp(dev, apdev, params):
     """DPP over TCP for enterprise provisioning"""
-    if not openssl_imported:
-        raise HwsimSkip("OpenSSL python method not available")
+    if not cryptography_imported:
+        raise HwsimSkip("cryptography python module not available")
 
     try:
         run_dpp_enterprise_tcp(dev, apdev, params)
@@ -7679,13 +7650,10 @@ def run_dpp_enterprise_tcp_end(params, dev, wt):
     pkcs7_file = params['prefix'] + ".pkcs7.der"
 
     with open("auth_serv/ec-ca.pem", "rb") as f:
-        res = f.read()
-        cacert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                 res)
+        cacert = x509.load_pem_x509_certificate(f.read())
 
     with open("auth_serv/ec-ca.key", "rb") as f:
-        res = f.read()
-        cakey = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, res)
+        cakey = serialization.load_pem_private_key(f.read(), None)
 
     ev = dev[1].wait_event(["DPP-CSR"], timeout=10)
     if ev is None:
@@ -7700,8 +7668,7 @@ def run_dpp_enterprise_tcp_end(params, dev, wt):
 
     cert = dpp_sign_cert(cacert, cakey, csr)
     with open(cert_file, 'wb') as f:
-        f.write(OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                cert))
+        f.write(cert.public_bytes(serialization.Encoding.PEM))
     subprocess.check_call(['openssl', 'crl2pkcs7', '-nocrl',
                            '-certfile', cert_file,
                            '-certfile', 'auth_serv/ec-ca.pem',
@@ -7729,8 +7696,8 @@ def run_dpp_enterprise_tcp_end(params, dev, wt):
 
 def test_dpp_enterprise_tcp2(dev, apdev, params):
     """DPP over TCP for enterprise provisioning (Controller initiating)"""
-    if not openssl_imported:
-        raise HwsimSkip("OpenSSL python method not available")
+    if not cryptography_imported:
+        raise HwsimSkip("cryptography python module not available")
 
     try:
         run_dpp_enterprise_tcp2(dev, apdev, params)
