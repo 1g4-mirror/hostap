@@ -1515,6 +1515,27 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 		return;
 	}
 
+	os_memset(&params, 0, sizeof(params));
+
+	wpas_sme_set_mlo_links(wpa_s, bss, ssid);
+
+	if (wpa_s->valid_links) {
+		wpa_printf(MSG_DEBUG, "MLD: In authentication");
+
+#ifdef CONFIG_TESTING_OPTIONS
+		bss = wpas_ml_connect_pref(wpa_s, bss, ssid);
+#endif /* CONFIG_TESTING_OPTIONS */
+
+		if (wpa_s->conf->mld_force_single_link) {
+			wpa_printf(MSG_DEBUG, "MLD: Force single link");
+			wpa_s->valid_links = BIT(wpa_s->mlo_assoc_link_id);
+		}
+		params.mld = true;
+		params.mld_link_id = wpa_s->mlo_assoc_link_id;
+		params.ap_mld_addr = wpa_s->ap_mld_addr;
+		wpas_ml_handle_removed_links(wpa_s, bss);
+	}
+
 	if (start && wpas_security_profile_active(wpa_s) &&
 	    ssid->security_profiles &&
 	    wpa_bss_get_ie_ext(bss, WLAN_EID_EXT_SECURITY_PROFILE)) {
@@ -1541,27 +1562,6 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 			return;
 		}
 		set_suites_done = true;
-	}
-
-	os_memset(&params, 0, sizeof(params));
-
-	wpas_sme_set_mlo_links(wpa_s, bss, ssid);
-
-	if (wpa_s->valid_links) {
-		wpa_printf(MSG_DEBUG, "MLD: In authentication");
-
-#ifdef CONFIG_TESTING_OPTIONS
-		bss = wpas_ml_connect_pref(wpa_s, bss, ssid);
-#endif /* CONFIG_TESTING_OPTIONS */
-
-		if (wpa_s->conf->mld_force_single_link) {
-			wpa_printf(MSG_DEBUG, "MLD: Force single link");
-			wpa_s->valid_links = BIT(wpa_s->mlo_assoc_link_id);
-		}
-		params.mld = true;
-		params.mld_link_id = wpa_s->mlo_assoc_link_id;
-		params.ap_mld_addr = wpa_s->ap_mld_addr;
-		wpas_ml_handle_removed_links(wpa_s, bss);
 	}
 
 	skip_auth = wpa_s->conf->reassoc_same_bss_optim &&
