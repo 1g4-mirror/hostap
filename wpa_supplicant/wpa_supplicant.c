@@ -4935,7 +4935,7 @@ static u8 * wpas_populate_assoc_ies(
 	} else
 #endif /* CONFIG_TESTING_OPTIONS */
 	if (algs == WPA_AUTH_ALG_OPEN &&
-	    ssid->key_mgmt == WPA_KEY_MGMT_OWE &&
+	    wpa_s->key_mgmt == WPA_KEY_MGMT_OWE &&
 	    !(wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_OWE_OFFLOAD_STA)) {
 		struct wpabuf *owe_ie;
 		u16 group;
