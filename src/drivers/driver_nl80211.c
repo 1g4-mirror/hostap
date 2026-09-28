@@ -16410,6 +16410,7 @@ failed_stop:
 	nl80211_set_pr_dev(pd_bss, 0);
 failed:
 	nl80211_del_non_netdev(pd_bss);
+	nl80211_destroy_bss(pd_bss);
 	os_free(pd_bss);
 	return -1;
 }
@@ -16422,20 +16423,29 @@ static void nl80211_pd_stop(void *priv)
 {
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct i802_bss *pd_bss = drv->pd_bss;
 
-	if (!drv->pd_bss)
+	if (!pd_bss)
 		return;
 
 	wpa_printf(MSG_DEBUG,
 		   "nl80211: Stopping PD wdev wdev_id=0x%llx addr=" MACSTR,
-		   (unsigned long long) drv->pd_bss->wdev_id,
-		   MAC2STR(drv->pd_bss->addr));
+		   (unsigned long long) pd_bss->wdev_id,
+		   MAC2STR(pd_bss->addr));
 
-	nl80211_set_pr_dev(drv->pd_bss, 0);
-	nl80211_destroy_bss(drv->pd_bss);
-	nl80211_del_non_netdev(drv->pd_bss);
-	os_free(drv->pd_bss);
+	/*
+	 * Detach the PD BSS from the driver first so that no event or command
+	 * routing path (nl80211_get_event_bss(), send_mlme(), set_key(),
+	 * start_peer_measurement()) can pick it up while it is being torn
+	 * down.
+	 */
 	drv->pd_bss = NULL;
+
+	nl80211_mgmt_unsubscribe(pd_bss, "PD wdev stop");
+	nl80211_set_pr_dev(pd_bss, 0);
+	nl80211_del_non_netdev(pd_bss);
+	nl80211_destroy_bss(pd_bss);
+	os_free(pd_bss);
 }
 
 
