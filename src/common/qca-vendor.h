@@ -7644,6 +7644,23 @@ enum qca_vendor_attr_roam_candidate_selection_criteria {
  *	scheme configuration is valid only until the next disconnection. When
  *	this flag is absent, the scan scheme configuration persists across
  *	disconnections.
+ *
+ * @QCA_ATTR_ROAM_CONTROL_HBR_PERIODIC_SCAN_INTERVAL_2G: Unsigned 32-bit
+ *	value in seconds. Configures the interval for periodic High-Band
+ *	Roaming (HBR) scans while connected to a 2.4 GHz AP or AP MLD link.
+ *	For instance, when a station is connected to a 2.4 GHz AP or AP MLD
+ *	link, the firmware triggers the periodic HBR scan with the configured
+ *	interval on 5 GHz and 6 GHz channels. If a non-AP MLD is connected to
+ *	both 2.4 GHz and 5 GHz links, the firmware uses
+ *	%QCA_ATTR_ROAM_CONTROL_HBR_PERIODIC_SCAN_INTERVAL_5G for the periodic
+ *	HBR scan.
+ *
+ * @QCA_ATTR_ROAM_CONTROL_HBR_PERIODIC_SCAN_INTERVAL_5G: Unsigned 32-bit
+ *	value in seconds. Configures the interval for periodic High-Band
+ *	Roaming (HBR) scans while connected to a 5 GHz AP or AP MLD link.
+ *	For instance, when a station is connected to a 5 GHz AP or AP MLD link,
+ *	the firmware triggers the periodic HBR scan with the configured interval
+ *	on 6 GHz channels.
  */
 enum qca_vendor_attr_roam_control {
 	QCA_ATTR_ROAM_CONTROL_ENABLE = 1,
@@ -7687,6 +7704,8 @@ enum qca_vendor_attr_roam_control {
 	QCA_ATTR_ROAM_CONTROL_CONNECTED_BSS_RECONNECT_DISALLOW_PERIOD = 39,
 	QCA_ATTR_ROAM_CONTROL_PER_BAND_LOW_RSSI_THRESHOLDS = 40,
 	QCA_ATTR_ROAM_CONTROL_SCAN_SCHEME_VALID_UNTIL_DISCONNECTION = 41,
+	QCA_ATTR_ROAM_CONTROL_HBR_PERIODIC_SCAN_INTERVAL_2G = 42,
+	QCA_ATTR_ROAM_CONTROL_HBR_PERIODIC_SCAN_INTERVAL_5G = 43,
 
 	/* keep last */
 	QCA_ATTR_ROAM_CONTROL_AFTER_LAST,
