@@ -629,11 +629,19 @@ enum qca_radiotap_vendor_ids {
  *	disconnected. The attributes used with this command are defined in
  *	enum qca_wlan_vendor_attr_active_tos.
  *
- * @QCA_NL80211_VENDOR_SUBCMD_HANG: Event indicating to the user space that the
- *	driver has detected an internal failure. This event carries the
- *	information indicating the reason that triggered this detection. The
- *	attributes for this command are defined in
- *	enum qca_wlan_vendor_attr_hang.
+ * @QCA_NL80211_VENDOR_SUBCMD_WLAN_RESET: Event indicating to the user
+ *	space that the driver has detected an internal failure. This event
+ *	carries the information indicating the reason that triggered this
+ *	detection. The attributes for this command are defined in
+ *	enum qca_wlan_vendor_attr_wlan_reset.
+ *
+ *	When invoked as a command, this subcommand allows userspace to trigger a
+ *	Wi-Fi subsystem restart (SSR). When the restart begins, the driver sends
+ *	%QCA_NL80211_VENDOR_SUBCMD_WLAN_RESET as an event with
+ *	%QCA_WLAN_RESET_USERSPACE_TRIGGERED through
+ *	%QCA_WLAN_VENDOR_ATTR_WLAN_RESET_REASON to indicate that the restart was
+ *	initiated by userspace. Also, when the restart completes, the driver
+ *	shall send %QCA_NL80211_VENDOR_SUBCMD_DRIVER_READY.
  *
  * @QCA_NL80211_VENDOR_SUBCMD_SPECTRAL_SCAN_GET_CONFIG: Get the current values
  *	of spectral parameters used. The spectral scan parameters are specified
@@ -1010,7 +1018,7 @@ enum qca_radiotap_vendor_ids {
  * @QCA_NL80211_VENDOR_SUBCMD_DRIVER_READY: Event indicating to the user space
  *	that the driver is ready for operations again after recovering from
  *	internal failures. This occurs following a failure that was indicated by
- *	@QCA_NL80211_VENDOR_SUBCMD_HANG.
+ *	@QCA_NL80211_VENDOR_SUBCMD_WLAN_RESET.
  *
  * @QCA_NL80211_VENDOR_SUBCMD_PASN: Subcommand used to offload preassociation
  *	security negotiation and key generation to user space.
@@ -1815,7 +1823,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_SPECTRAL_SCAN_START = 154,
 	QCA_NL80211_VENDOR_SUBCMD_SPECTRAL_SCAN_STOP = 155,
 	QCA_NL80211_VENDOR_SUBCMD_ACTIVE_TOS = 156,
-	QCA_NL80211_VENDOR_SUBCMD_HANG = 157,
+	QCA_NL80211_VENDOR_SUBCMD_WLAN_RESET = 157,
 	QCA_NL80211_VENDOR_SUBCMD_SPECTRAL_SCAN_GET_CONFIG = 158,
 	QCA_NL80211_VENDOR_SUBCMD_SPECTRAL_SCAN_GET_DIAG_STATS = 159,
 	QCA_NL80211_VENDOR_SUBCMD_SPECTRAL_SCAN_GET_CAP_INFO = 160,
@@ -9717,133 +9725,231 @@ enum qca_wlan_vendor_attr_active_tos {
 	QCA_WLAN_VENDOR_ATTR_ACTIVE_TOS_START = 2,
 };
 
-enum qca_wlan_vendor_hang_reason {
+enum qca_wlan_vendor_wlan_reset_reason {
 	/* Unspecified reason */
-	QCA_WLAN_HANG_REASON_UNSPECIFIED = 0,
+	QCA_WLAN_RESET_REASON_UNSPECIFIED = 0,
 	/* No Map for the MAC entry for the received frame */
-	QCA_WLAN_HANG_RX_HASH_NO_ENTRY_FOUND = 1,
+	QCA_WLAN_RESET_RX_HASH_NO_ENTRY_FOUND = 1,
 	/* Peer deletion timeout happened */
-	QCA_WLAN_HANG_PEER_DELETION_TIMEDOUT = 2,
+	QCA_WLAN_RESET_PEER_DELETION_TIMEDOUT = 2,
 	/* Peer unmap timeout */
-	QCA_WLAN_HANG_PEER_UNMAP_TIMEDOUT = 3,
+	QCA_WLAN_RESET_PEER_UNMAP_TIMEDOUT = 3,
 	/* Scan request timed out */
-	QCA_WLAN_HANG_SCAN_REQ_EXPIRED = 4,
+	QCA_WLAN_RESET_SCAN_REQ_EXPIRED = 4,
 	/* Consecutive Scan attempt failures */
-	QCA_WLAN_HANG_SCAN_ATTEMPT_FAILURES = 5,
+	QCA_WLAN_RESET_SCAN_ATTEMPT_FAILURES = 5,
 	/* Unable to get the message buffer */
-	QCA_WLAN_HANG_GET_MSG_BUFF_FAILURE = 6,
+	QCA_WLAN_RESET_GET_MSG_BUFF_FAILURE = 6,
 	/* Current command processing is timedout */
-	QCA_WLAN_HANG_ACTIVE_LIST_TIMEOUT = 7,
+	QCA_WLAN_RESET_ACTIVE_LIST_TIMEOUT = 7,
 	/* Timeout for an ACK from FW for suspend request */
-	QCA_WLAN_HANG_SUSPEND_TIMEOUT = 8,
+	QCA_WLAN_RESET_SUSPEND_TIMEOUT = 8,
 	/* Timeout for an ACK from FW for resume request */
-	QCA_WLAN_HANG_RESUME_TIMEOUT = 9,
+	QCA_WLAN_RESET_RESUME_TIMEOUT = 9,
 	/* Transmission timeout for consecutive data frames */
-	QCA_WLAN_HANG_TRANSMISSIONS_TIMEOUT = 10,
+	QCA_WLAN_RESET_TRANSMISSIONS_TIMEOUT = 10,
 	/* Timeout for the TX completion status of data frame */
-	QCA_WLAN_HANG_TX_COMPLETE_TIMEOUT = 11,
+	QCA_WLAN_RESET_TX_COMPLETE_TIMEOUT = 11,
 	/* DXE failure for TX/RX, DXE resource unavailability */
-	QCA_WLAN_HANG_DXE_FAILURE = 12,
+	QCA_WLAN_RESET_DXE_FAILURE = 12,
 	/* WMI pending commands exceed the maximum count */
-	QCA_WLAN_HANG_WMI_EXCEED_MAX_PENDING_CMDS = 13,
+	QCA_WLAN_RESET_WMI_EXCEED_MAX_PENDING_CMDS = 13,
 	/* Timeout for peer STA connection accept command's response from the
 	 * FW in AP mode. This command is triggered when a STA (peer) connects
 	 * to AP (DUT).
 	 */
-	QCA_WLAN_HANG_AP_STA_CONNECT_REQ_TIMEOUT = 14,
+	QCA_WLAN_RESET_AP_STA_CONNECT_REQ_TIMEOUT = 14,
 	/* Timeout for the AP connection accept command's response from the FW
 	 * in STA mode. This command is triggered when the STA (DUT) connects
 	 * to an AP (peer).
 	 */
-	QCA_WLAN_HANG_STA_AP_CONNECT_REQ_TIMEOUT = 15,
+	QCA_WLAN_RESET_STA_AP_CONNECT_REQ_TIMEOUT = 15,
 	/* Timeout waiting for the response to the MAC HW mode change command
 	 * sent to FW as a part of MAC mode switch among DBS (Dual Band
 	 * Simultaneous), SCC (Single Channel Concurrency), and MCC (Multi
 	 * Channel Concurrency) mode.
 	 */
-	QCA_WLAN_HANG_MAC_HW_MODE_CHANGE_TIMEOUT = 16,
+	QCA_WLAN_RESET_MAC_HW_MODE_CHANGE_TIMEOUT = 16,
 	/* Timeout waiting for the response from FW to configure the MAC HW's
 	 * mode. This operation is to configure the single/two MACs in either
 	 * SCC/MCC/DBS mode.
 	 */
-	QCA_WLAN_HANG_MAC_HW_MODE_CONFIG_TIMEOUT = 17,
+	QCA_WLAN_RESET_MAC_HW_MODE_CONFIG_TIMEOUT = 17,
 	/* Timeout waiting for response of VDEV start command from the FW */
-	QCA_WLAN_HANG_VDEV_START_RESPONSE_TIMED_OUT = 18,
+	QCA_WLAN_RESET_VDEV_START_RESPONSE_TIMED_OUT = 18,
 	/* Timeout waiting for response of VDEV restart command from the FW */
-	QCA_WLAN_HANG_VDEV_RESTART_RESPONSE_TIMED_OUT = 19,
+	QCA_WLAN_RESET_VDEV_RESTART_RESPONSE_TIMED_OUT = 19,
 	/* Timeout waiting for response of VDEV stop command from the FW */
-	QCA_WLAN_HANG_VDEV_STOP_RESPONSE_TIMED_OUT = 20,
+	QCA_WLAN_RESET_VDEV_STOP_RESPONSE_TIMED_OUT = 20,
 	/* Timeout waiting for response of VDEV delete command from the FW */
-	QCA_WLAN_HANG_VDEV_DELETE_RESPONSE_TIMED_OUT = 21,
+	QCA_WLAN_RESET_VDEV_DELETE_RESPONSE_TIMED_OUT = 21,
 	/* Timeout waiting for response of peer all delete request command to
 	 * the FW on a specific VDEV.
 	 */
-	QCA_WLAN_HANG_VDEV_PEER_DELETE_ALL_RESPONSE_TIMED_OUT = 22,
+	QCA_WLAN_RESET_VDEV_PEER_DELETE_ALL_RESPONSE_TIMED_OUT = 22,
 	/* WMI sequence mismatch between WMI command and Tx completion */
-	QCA_WLAN_HANG_WMI_BUF_SEQUENCE_MISMATCH = 23,
+	QCA_WLAN_RESET_WMI_BUF_SEQUENCE_MISMATCH = 23,
 	/* Write to Device HAL register failed */
-	QCA_WLAN_HANG_REG_WRITE_FAILURE = 24,
+	QCA_WLAN_RESET_REG_WRITE_FAILURE = 24,
 	/* No credit left to send the wow_wakeup_from_sleep to firmware */
-	QCA_WLAN_HANG_SUSPEND_NO_CREDIT = 25,
+	QCA_WLAN_RESET_SUSPEND_NO_CREDIT = 25,
 	/* Bus failure */
-	QCA_WLAN_HANG_BUS_FAILURE = 26,
+	QCA_WLAN_RESET_BUS_FAILURE = 26,
 	/* tasklet/credit latency found */
-	QCA_WLAN_HANG_TASKLET_CREDIT_LATENCY_DETECT = 27,
+	QCA_WLAN_RESET_TASKLET_CREDIT_LATENCY_DETECT = 27,
 	/* MSDU buffers received in REO error ring, exceeding certain
 	 * threshold
 	 */
-	QCA_WLAN_HANG_RX_MSDU_BUF_RCVD_IN_ERR_RING = 28,
+	QCA_WLAN_RESET_RX_MSDU_BUF_RCVD_IN_ERR_RING = 28,
 	/* Vdev SM is out of sync and connect req received
 	 * when already connected
 	 */
-	QCA_WLAN_HANG_VDEV_SM_OUT_OF_SYNC = 29,
+	QCA_WLAN_RESET_VDEV_SM_OUT_OF_SYNC = 29,
 	/* Stats request timeout */
-	QCA_WLAN_HANG_STATS_REQ_TIMEOUT = 30,
+	QCA_WLAN_RESET_STATS_REQ_TIMEOUT = 30,
 	/* Leak in TX descriptor for a packet */
-	QCA_WLAN_HANG_TX_DESC_LEAK = 31,
+	QCA_WLAN_RESET_TX_DESC_LEAK = 31,
 	/* Scheduler watchdog timeout */
-	QCA_WLAN_HANG_SCHED_TIMEOUT = 32,
+	QCA_WLAN_RESET_SCHED_TIMEOUT = 32,
 	/* Failed to send self peer deletion cmd to firmware */
-	QCA_WLAN_HANG_SELF_PEER_DEL_FAIL = 33,
+	QCA_WLAN_RESET_SELF_PEER_DEL_FAIL = 33,
 	/* Received del self sta without del bss */
-	QCA_WLAN_HANG_DEL_SELF_STA_FAIL = 34,
+	QCA_WLAN_RESET_DEL_SELF_STA_FAIL = 34,
 	/* Recovery needed when sending flush completion to userspace */
-	QCA_WLAN_HANG_FLUSH_LOGS = 35,
+	QCA_WLAN_RESET_FLUSH_LOGS = 35,
 	/* Host wakeup because of page fault */
-	QCA_WLAN_HANG_HOST_WAKEUP_REASON_PAGE_FAULT = 36,
+	QCA_WLAN_RESET_HOST_WAKEUP_REASON_PAGE_FAULT = 36,
 	/* Timeout waiting for response of unified vdev connect command from the
 	 * firmware. This command combines peer create, vdev start, peer assoc,
 	 * and vdev up operations to optimize link switch time.
 	 */
-	QCA_WLAN_HANG_VDEV_UNIFIED_CONNECT_RESP_TIMEOUT = 37,
+	QCA_WLAN_RESET_VDEV_UNIFIED_CONNECT_RESP_TIMEOUT = 37,
 	/* Timeout waiting for response of unified vdev disconnect command from
 	 * the firmware. This command combines peer delete, vdev stop, and vdev
 	 * down operations to optimize link switch time.
 	 */
-	QCA_WLAN_HANG_VDEV_UNIFIED_DISCONNECT_RESP_TIMEOUT = 38,
+	QCA_WLAN_RESET_VDEV_UNIFIED_DISCONNECT_RESP_TIMEOUT = 38,
+	/* Wi-Fi subsystem restart triggered by userspace */
+	QCA_WLAN_RESET_USERSPACE_TRIGGERED = 39,
 };
 
 /**
- * enum qca_wlan_vendor_attr_hang - Used by the vendor command
- * QCA_NL80211_VENDOR_SUBCMD_HANG.
+ * enum qca_wlan_vendor_attr_wlan_reset - Used by the vendor command
+ * QCA_NL80211_VENDOR_SUBCMD_WLAN_RESET.
  */
-enum qca_wlan_vendor_attr_hang {
-	QCA_WLAN_VENDOR_ATTR_HANG_INVALID = 0,
-	/* Reason for the hang - u32 attribute with a value from enum
-	 * qca_wlan_vendor_hang_reason.
+enum qca_wlan_vendor_attr_wlan_reset {
+	QCA_WLAN_VENDOR_ATTR_WLAN_RESET_INVALID = 0,
+	/* Reason for the reset - u32 attribute with a value from enum
+	 * qca_wlan_vendor_wlan_reset_reason.
 	 */
-	QCA_WLAN_VENDOR_ATTR_HANG_REASON = 1,
-	/* The binary blob data associated with the hang reason specified by
-	 * QCA_WLAN_VENDOR_ATTR_HANG_REASON. This binary data is expected to
-	 * contain the required dump to analyze the reason for the hang.
+	QCA_WLAN_VENDOR_ATTR_WLAN_RESET_REASON = 1,
+	/* The binary blob data associated with the reset reason specified by
+	 * QCA_WLAN_VENDOR_ATTR_WLAN_RESET_REASON. This binary data is expected
+	 * to contain the required dump to analyze the reason for the reset.
 	 * NLA_BINARY attribute, the max size is 1024 bytes.
 	 */
-	QCA_WLAN_VENDOR_ATTR_HANG_REASON_DATA = 2,
+	QCA_WLAN_VENDOR_ATTR_WLAN_RESET_REASON_DATA = 2,
 
-	QCA_WLAN_VENDOR_ATTR_HANG_AFTER_LAST,
-	QCA_WLAN_VENDOR_ATTR_HANG_MAX =
-		QCA_WLAN_VENDOR_ATTR_HANG_AFTER_LAST - 1,
+	QCA_WLAN_VENDOR_ATTR_WLAN_RESET_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_WLAN_RESET_MAX =
+		QCA_WLAN_VENDOR_ATTR_WLAN_RESET_AFTER_LAST - 1,
 };
+
+/* Deprecated HANG aliases - use the WLAN_RESET equivalents above */
+#define QCA_NL80211_VENDOR_SUBCMD_HANG \
+	QCA_NL80211_VENDOR_SUBCMD_WLAN_RESET
+#define qca_wlan_vendor_hang_reason \
+	qca_wlan_vendor_wlan_reset_reason
+#define QCA_WLAN_HANG_REASON_UNSPECIFIED \
+	QCA_WLAN_RESET_REASON_UNSPECIFIED
+#define QCA_WLAN_HANG_RX_HASH_NO_ENTRY_FOUND \
+	QCA_WLAN_RESET_RX_HASH_NO_ENTRY_FOUND
+#define QCA_WLAN_HANG_PEER_DELETION_TIMEDOUT \
+	QCA_WLAN_RESET_PEER_DELETION_TIMEDOUT
+#define QCA_WLAN_HANG_PEER_UNMAP_TIMEDOUT \
+	QCA_WLAN_RESET_PEER_UNMAP_TIMEDOUT
+#define QCA_WLAN_HANG_SCAN_REQ_EXPIRED \
+	QCA_WLAN_RESET_SCAN_REQ_EXPIRED
+#define QCA_WLAN_HANG_SCAN_ATTEMPT_FAILURES \
+	QCA_WLAN_RESET_SCAN_ATTEMPT_FAILURES
+#define QCA_WLAN_HANG_GET_MSG_BUFF_FAILURE \
+	QCA_WLAN_RESET_GET_MSG_BUFF_FAILURE
+#define QCA_WLAN_HANG_ACTIVE_LIST_TIMEOUT \
+	QCA_WLAN_RESET_ACTIVE_LIST_TIMEOUT
+#define QCA_WLAN_HANG_SUSPEND_TIMEOUT \
+	QCA_WLAN_RESET_SUSPEND_TIMEOUT
+#define QCA_WLAN_HANG_RESUME_TIMEOUT \
+	QCA_WLAN_RESET_RESUME_TIMEOUT
+#define QCA_WLAN_HANG_TRANSMISSIONS_TIMEOUT \
+	QCA_WLAN_RESET_TRANSMISSIONS_TIMEOUT
+#define QCA_WLAN_HANG_TX_COMPLETE_TIMEOUT \
+	QCA_WLAN_RESET_TX_COMPLETE_TIMEOUT
+#define QCA_WLAN_HANG_DXE_FAILURE \
+	QCA_WLAN_RESET_DXE_FAILURE
+#define QCA_WLAN_HANG_WMI_EXCEED_MAX_PENDING_CMDS \
+	QCA_WLAN_RESET_WMI_EXCEED_MAX_PENDING_CMDS
+#define QCA_WLAN_HANG_AP_STA_CONNECT_REQ_TIMEOUT \
+	QCA_WLAN_RESET_AP_STA_CONNECT_REQ_TIMEOUT
+#define QCA_WLAN_HANG_STA_AP_CONNECT_REQ_TIMEOUT \
+	QCA_WLAN_RESET_STA_AP_CONNECT_REQ_TIMEOUT
+#define QCA_WLAN_HANG_MAC_HW_MODE_CHANGE_TIMEOUT \
+	QCA_WLAN_RESET_MAC_HW_MODE_CHANGE_TIMEOUT
+#define QCA_WLAN_HANG_MAC_HW_MODE_CONFIG_TIMEOUT \
+	QCA_WLAN_RESET_MAC_HW_MODE_CONFIG_TIMEOUT
+#define QCA_WLAN_HANG_VDEV_START_RESPONSE_TIMED_OUT \
+	QCA_WLAN_RESET_VDEV_START_RESPONSE_TIMED_OUT
+#define QCA_WLAN_HANG_VDEV_RESTART_RESPONSE_TIMED_OUT \
+	QCA_WLAN_RESET_VDEV_RESTART_RESPONSE_TIMED_OUT
+#define QCA_WLAN_HANG_VDEV_STOP_RESPONSE_TIMED_OUT \
+	QCA_WLAN_RESET_VDEV_STOP_RESPONSE_TIMED_OUT
+#define QCA_WLAN_HANG_VDEV_DELETE_RESPONSE_TIMED_OUT \
+	QCA_WLAN_RESET_VDEV_DELETE_RESPONSE_TIMED_OUT
+#define QCA_WLAN_HANG_VDEV_PEER_DELETE_ALL_RESPONSE_TIMED_OUT \
+	QCA_WLAN_RESET_VDEV_PEER_DELETE_ALL_RESPONSE_TIMED_OUT
+#define QCA_WLAN_HANG_WMI_BUF_SEQUENCE_MISMATCH \
+	QCA_WLAN_RESET_WMI_BUF_SEQUENCE_MISMATCH
+#define QCA_WLAN_HANG_REG_WRITE_FAILURE \
+	QCA_WLAN_RESET_REG_WRITE_FAILURE
+#define QCA_WLAN_HANG_SUSPEND_NO_CREDIT \
+	QCA_WLAN_RESET_SUSPEND_NO_CREDIT
+#define QCA_WLAN_HANG_BUS_FAILURE \
+	QCA_WLAN_RESET_BUS_FAILURE
+#define QCA_WLAN_HANG_TASKLET_CREDIT_LATENCY_DETECT \
+	QCA_WLAN_RESET_TASKLET_CREDIT_LATENCY_DETECT
+#define QCA_WLAN_HANG_RX_MSDU_BUF_RCVD_IN_ERR_RING \
+	QCA_WLAN_RESET_RX_MSDU_BUF_RCVD_IN_ERR_RING
+#define QCA_WLAN_HANG_VDEV_SM_OUT_OF_SYNC \
+	QCA_WLAN_RESET_VDEV_SM_OUT_OF_SYNC
+#define QCA_WLAN_HANG_STATS_REQ_TIMEOUT \
+	QCA_WLAN_RESET_STATS_REQ_TIMEOUT
+#define QCA_WLAN_HANG_TX_DESC_LEAK \
+	QCA_WLAN_RESET_TX_DESC_LEAK
+#define QCA_WLAN_HANG_SCHED_TIMEOUT \
+	QCA_WLAN_RESET_SCHED_TIMEOUT
+#define QCA_WLAN_HANG_SELF_PEER_DEL_FAIL \
+	QCA_WLAN_RESET_SELF_PEER_DEL_FAIL
+#define QCA_WLAN_HANG_DEL_SELF_STA_FAIL \
+	QCA_WLAN_RESET_DEL_SELF_STA_FAIL
+#define QCA_WLAN_HANG_FLUSH_LOGS \
+	QCA_WLAN_RESET_FLUSH_LOGS
+#define QCA_WLAN_HANG_HOST_WAKEUP_REASON_PAGE_FAULT \
+	QCA_WLAN_RESET_HOST_WAKEUP_REASON_PAGE_FAULT
+#define QCA_WLAN_HANG_VDEV_UNIFIED_CONNECT_RESP_TIMEOUT \
+	QCA_WLAN_RESET_VDEV_UNIFIED_CONNECT_RESP_TIMEOUT
+#define QCA_WLAN_HANG_VDEV_UNIFIED_DISCONNECT_RESP_TIMEOUT \
+	QCA_WLAN_RESET_VDEV_UNIFIED_DISCONNECT_RESP_TIMEOUT
+#define qca_wlan_vendor_attr_hang \
+	qca_wlan_vendor_attr_wlan_reset
+#define QCA_WLAN_VENDOR_ATTR_HANG_INVALID \
+	QCA_WLAN_VENDOR_ATTR_WLAN_RESET_INVALID
+#define QCA_WLAN_VENDOR_ATTR_HANG_REASON \
+	QCA_WLAN_VENDOR_ATTR_WLAN_RESET_REASON
+#define QCA_WLAN_VENDOR_ATTR_HANG_REASON_DATA \
+	QCA_WLAN_VENDOR_ATTR_WLAN_RESET_REASON_DATA
+#define QCA_WLAN_VENDOR_ATTR_HANG_AFTER_LAST \
+	QCA_WLAN_VENDOR_ATTR_WLAN_RESET_AFTER_LAST
+#define QCA_WLAN_VENDOR_ATTR_HANG_MAX \
+	QCA_WLAN_VENDOR_ATTR_WLAN_RESET_MAX
 
 /**
  * enum qca_wlan_vendor_flush_pending_policy: Represents values for
