@@ -13423,6 +13423,10 @@ enum qca_wlan_vendor_chip_id {
  *
  * @QCA_WLAN_VENDOR_CFR_STOP_REASON_RECOVERY: Stopped as part of driver
  * recovery, restart, or assert handling.
+ *
+ * @QCA_WLAN_VENDOR_CFR_STOP_REASON_SYSTEM_SUSPEND: Stopped because the system
+ * is preparing to enter suspend. CFR capture holds a wake lock while active,
+ * so it is torn down on suspend entry rather than kept running.
  */
 enum qca_wlan_vendor_cfr_stop_reason {
     QCA_WLAN_VENDOR_CFR_STOP_REASON_UNSPEC = 0,
@@ -13436,6 +13440,7 @@ enum qca_wlan_vendor_cfr_stop_reason {
     QCA_WLAN_VENDOR_CFR_STOP_REASON_LINK_SWITCHED = 8,
     QCA_WLAN_VENDOR_CFR_STOP_REASON_LINK_RECONFIG = 9,
     QCA_WLAN_VENDOR_CFR_STOP_REASON_RECOVERY = 10,
+    QCA_WLAN_VENDOR_CFR_STOP_REASON_SYSTEM_SUSPEND = 11,
 };
 
 /**
