@@ -1513,7 +1513,9 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 	int omit_rsnxe = 0;
 	unsigned int keys_to_clear = 0;
 	bool set_suites_done = false;
+#ifdef CONFIG_IEEE80211R
 	bool local_ft;
+#endif /* CONFIG_IEEE80211R */
 
 	if (bss == NULL) {
 		wpa_msg(wpa_s, MSG_ERROR, "SME: No scan result available for "
