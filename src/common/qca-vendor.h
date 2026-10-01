@@ -2201,6 +2201,17 @@ enum qca_wlan_vendor_attr {
 	  */
 	QCA_WLAN_VENDOR_ATTR_ANT_RSSI = 48,
 
+	/* A byte array used by QCA_NL80211_VENDOR_SUBCMD_GET_FEATURES to
+	 * indicate the security profiles supported by the driver.
+	 * This attribute contains the Security Profile Bitmap field of Security
+	 * Profile Element defined in IEEE P802.11bn/D2.0, 9.4.2.369.
+	 * Security profiles are identified by their corresponding bit
+	 * positions, with first byte being the least significant and the last
+	 * one being the most significant one. Bit N being set indicates that
+	 * Security Profile N is supported by the driver.
+	 */
+	QCA_WLAN_VENDOR_ATTR_SUPPORTED_SEC_PROFILES = 49,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_MAX	= QCA_WLAN_VENDOR_ATTR_AFTER_LAST - 1,
@@ -20982,11 +20993,34 @@ enum qca_wlan_connect_ext_features {
  * BSSIDs to indicate allowed BSSIDs for association. This configuration stays
  * in effect only for the current connection request and for the next connect
  * request if there is no connection currently.
+ * @QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_SECURITY_PROFILES: Security profiles
+ * contained in a byte array, as defined by the Security Profile Bitmap field
+ * of the Security Profile element (IEEE P802.11bn/D2.0, 9.4.2.369), with the
+ * first byte being the least significant and the last one being the most
+ * significant. Bit N being set indicates that Security Profile N is supported
+ * by the supplicant. This attribute shall be included in the connect request
+ * only when security profile negotiation is supported by the supplicant and the
+ * driver has included %QCA_WLAN_VENDOR_ATTR_SUPPORTED_SEC_PROFILES in the
+ * %QCA_NL80211_VENDOR_SUBCMD_GET_FEATURES response.
+ *
+ * If this attribute is absent, the driver must not enable any security profile
+ * during the lifetime of the connection. Supported security profiles may be
+ * specified explicitly through this attribute and implicitly through the RSN
+ * parameters and capabilities provided in %NL80211_CMD_CONNECT and
+ * %QCA_NL80211_VENDOR_SUBCMD_CONNECT_EXT. If this attribute is present but no
+ * security profile bits are set, the driver can use only the security profiles
+ * implicitly derived from the RSN parameters and capabilities. Explicitly
+ * configured security profiles shall be used only when the AP advertises
+ * security profile support. When one or more security profile bits are set in
+ * this attribute, the driver may use the union of the explicitly configured
+ * profiles and the profiles implicitly derived from the RSN parameters and
+ * capabilities.
  */
 enum qca_wlan_vendor_attr_connect_ext {
 	QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_INVALID = 0,
 	QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_FEATURES = 1,
 	QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_ALLOWED_BSSIDS = 2,
+	QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_SECURITY_PROFILES = 3,
 
 	QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_MAX =
@@ -24583,6 +24617,24 @@ enum qca_wlan_vendor_external_auth_action {
  *	supplicant to the driver. With the KCK provided, the driver can
  *	calculate the MIC and append it to the (Re)Association Request frame as
  *	mandated by IEEE P802.11bi/D4.0, 12.16.6.2/12.16.6.3.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_SEC_PROFILE: Optional u8 attribute for
+ *	the authentication request event interface. This attribute specifies the
+ *	security profile selected by the driver for the current authentication
+ *	session. When present, the supplicant shall use the specified security
+ *	profile. If this attribute is not present and security profile
+ *	negotiation is supported by the supplicant, the supplicant shall derive
+ *	the security profile based on the RSN parameters received in the
+ *	external authentication request sent by the driver.
+ *
+ *	The driver shall include this attribute in the external authentication
+ *	request only when the supplicant supports security profile negotiation.
+ *	The driver shall select the security profile only from the set of
+ *	profiles available for the connection, including profiles explicitly
+ *	advertised through %QCA_WLAN_VENDOR_ATTR_CONNECT_EXT_SECURITY_PROFILES
+ *	and profiles implicitly derived from the RSN parameters and capabilities
+ *	provided in the connect request through %NL80211_CMD_CONNECT and
+ *	%QCA_NL80211_VENDOR_SUBCMD_CONNECT_EXT.
  */
 enum qca_wlan_vendor_attr_external_auth {
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_INVALID = 0,
@@ -24600,6 +24652,7 @@ enum qca_wlan_vendor_attr_external_auth {
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_RSN_CAPAB = 12,
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_RSNXE_DATA = 13,
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_PTK_KCK = 14,
+	QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_SEC_PROFILE = 15,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_EXTERNAL_AUTH_AFTER_LAST,
