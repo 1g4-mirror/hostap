@@ -4105,19 +4105,6 @@ static int wpa_supplicant_event_associnfo(struct wpa_supplicant *wpa_s,
 		wpa_sm_set_reset_fils_completed(wpa_s->wpa, 1);
 #endif /* CONFIG_FILS */
 
-#ifdef CONFIG_ENC_ASSOC
-	if (wpa_s->assoc_resp_encrypted &&
-	    (wpa_s->drv_flags2 &
-	     WPA_DRIVER_FLAGS2_ASSOCIATION_FRAME_ENCRYPTION) &&
-	    wpas_rx_enc_assoc_resp(wpa_s, wpa_s->valid_links ?
-				   wpa_s->ap_mld_addr : bssid,
-				   data->assoc_info.resp_ies,
-				   data->assoc_info.resp_ies_len) < 0) {
-		wpa_supplicant_deauthenticate(wpa_s, WLAN_REASON_UNSPECIFIED);
-		return -1;
-	}
-#endif /* CONFIG_ENC_ASSOC */
-
 #ifdef CONFIG_OWE
 	if (wpa_s->key_mgmt == WPA_KEY_MGMT_OWE &&
 	    !(wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_OWE_OFFLOAD_STA) &&
@@ -4951,12 +4938,6 @@ static int wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 	if (!ft_completed)
 		ft_completed = wpa_fils_is_completed(wpa_s->wpa);
 
-	if (!ft_completed)
-		ft_completed = wpa_eppke_is_completed(wpa_s->wpa);
-
-	if (!ft_completed)
-		ft_completed = wpa_eap_over_auth_frame_is_completed(wpa_s->wpa);
-
 	wpa_supplicant_set_state(wpa_s, WPA_ASSOCIATED);
 	if (!ether_addr_equal(bssid, wpa_s->bssid)) {
 		if (os_reltime_initialized(&wpa_s->session_start)) {
@@ -4977,7 +4958,8 @@ static int wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 		os_memset(wpa_s->pending_bssid, 0, ETH_ALEN);
 		wpas_notify_bssid_changed(wpa_s);
 
-		if (wpa_supplicant_dynamic_keys(wpa_s) && !ft_completed) {
+		if (wpa_supplicant_dynamic_keys(wpa_s) && !ft_completed &&
+		    !wpa_s->assoc_resp_encrypted) {
 			wpa_clear_keys(wpa_s, bssid);
 		}
 		if (wpa_supplicant_select_config(wpa_s, data) < 0) {
@@ -4999,6 +4981,25 @@ static int wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 			wpa_msg(wpa_s, MSG_WARNING,
 				"WPA/RSN IEs not updated");
 	}
+
+#ifdef CONFIG_ENC_ASSOC
+	if (data && wpa_s->assoc_resp_encrypted &&
+	    (wpa_s->drv_flags2 &
+	     WPA_DRIVER_FLAGS2_ASSOCIATION_FRAME_ENCRYPTION) &&
+	    wpas_rx_enc_assoc_resp(wpa_s, wpa_s->valid_links ?
+				   wpa_s->ap_mld_addr : bssid,
+				   data->assoc_info.resp_ies,
+				   data->assoc_info.resp_ies_len) < 0) {
+		wpa_supplicant_deauthenticate(wpa_s, WLAN_REASON_UNSPECIFIED);
+		return -1;
+	}
+#endif /* CONFIG_ENC_ASSOC */
+
+	if (!ft_completed)
+		ft_completed = wpa_eppke_is_completed(wpa_s->wpa);
+
+	if (!ft_completed)
+		ft_completed = wpa_eap_over_auth_frame_is_completed(wpa_s->wpa);
 
 	wpas_fst_update_mb_assoc(wpa_s, data);
 
