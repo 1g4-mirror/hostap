@@ -6345,7 +6345,7 @@ def test_ap_wpa2_eap_peap_13(dev, apdev):
     id = eap_connect(dev[0], hapd, "PEAP", "user",
                      anonymous_identity="peap", password="password",
                      ca_cert="auth_serv/ca.pem",
-                     phase1="tls_disable_tlsv1_0=1 tls_disable_tlsv1_1=1 tls_disable_tlsv1_2=1 tls_disable_tlsv1_3=0",
+                     phase1="tls_disable_tlsv1_0=1 tls_disable_tlsv1_1=1 tls_disable_tlsv1_2=1 tls_disable_tlsv1_3=0 peapver=0 crypto_binding=2",
                      phase2="auth=MSCHAPV2")
     ver = dev[0].get_status_field("eap_tls_version")
     if ver != "TLSv1.3":
