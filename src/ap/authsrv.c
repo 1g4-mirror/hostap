@@ -314,6 +314,7 @@ static struct eap_config * authsrv_eap_config(struct hostapd_data *hapd)
 	cfg->eap_sim_db_priv = hapd->eap_sim_db_priv;
 	cfg->tls_session_lifetime = hapd->conf->tls_session_lifetime;
 	cfg->tls_flags = hapd->conf->tls_flags;
+	cfg->peap_crypto_binding = hapd->conf->eap_peap_crypto_binding;
 	cfg->max_auth_rounds = hapd->conf->max_auth_rounds;
 	cfg->max_auth_rounds_short = hapd->conf->max_auth_rounds_short;
 	if (hapd->conf->pac_opaque_encr_key)

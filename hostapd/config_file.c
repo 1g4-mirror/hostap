@@ -2600,6 +2600,17 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		bss->crl_reload_interval = atoi(pos);
 	} else if (os_strcmp(buf, "tls_session_lifetime") == 0) {
 		bss->tls_session_lifetime = atoi(pos);
+	} else if (os_strcmp(buf, "eap_peap_crypto_binding") == 0) {
+		char *end;
+		long int val = strtol(pos, &end, 10);
+
+		if (end == pos || *end || val < 0 || val > 2) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: invalid eap_peap_crypto_binding '%s'",
+				   line, pos);
+			return 1;
+		}
+		bss->eap_peap_crypto_binding = val;
 	} else if (os_strcmp(buf, "tls_flags") == 0) {
 		bss->tls_flags = parse_tls_flags(pos);
 	} else if (os_strcmp(buf, "max_auth_rounds") == 0) {

@@ -261,6 +261,7 @@ struct eap_config {
 	int erp;
 	unsigned int tls_session_lifetime;
 	unsigned int tls_flags;
+	int peap_crypto_binding; /* 0=off, 1=optional, 2=required */
 
 	unsigned int max_auth_rounds;
 	unsigned int max_auth_rounds_short;

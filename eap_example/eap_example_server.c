@@ -224,6 +224,7 @@ int eap_example_server_init(void)
 	os_memset(&eap_conf, 0, sizeof(eap_conf));
 	eap_conf.eap_server = 1;
 	eap_conf.ssl_ctx = eap_ctx.tls_ctx;
+	eap_conf.peap_crypto_binding = 1;
 
 	os_memset(&eap_sess, 0, sizeof(eap_sess));
 	eap_ctx.eap = eap_server_sm_init(&eap_ctx, &eap_cb, &eap_conf,

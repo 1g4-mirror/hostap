@@ -157,6 +157,7 @@ void hostapd_config_defaults_bss(struct hostapd_bss_config *bss)
 	 * This can be enabled by default once the implementation has been fully
 	 * completed and tested with other implementations. */
 	bss->tls_flags = TLS_CONN_DISABLE_TLSv1_3;
+	bss->eap_peap_crypto_binding = 1;
 
 	bss->max_auth_rounds = 100;
 	bss->max_auth_rounds_short = 50;

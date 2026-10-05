@@ -184,7 +184,18 @@ static void * eap_peap_init(struct eap_sm *sm)
 		data->peap_version = data->force_version;
 	}
 	data->state = START;
-	data->crypto_binding = OPTIONAL_BINDING;
+	switch (sm->cfg->peap_crypto_binding) {
+	case NO_BINDING:
+		data->crypto_binding = NO_BINDING;
+		break;
+	case REQUIRE_BINDING:
+		data->crypto_binding = REQUIRE_BINDING;
+		break;
+	case OPTIONAL_BINDING:
+	default:
+		data->crypto_binding = OPTIONAL_BINDING;
+		break;
+	}
 
 	if (eap_server_tls_ssl_init(sm, &data->ssl, 0, EAP_TYPE_PEAP)) {
 		wpa_printf(MSG_INFO, "EAP-PEAP: Failed to initialize SSL.");

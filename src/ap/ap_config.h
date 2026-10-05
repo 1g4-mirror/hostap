@@ -444,6 +444,7 @@ struct hostapd_bss_config {
 	int check_crl_strict;
 	unsigned int crl_reload_interval;
 	unsigned int tls_session_lifetime;
+	int eap_peap_crypto_binding; /* 0=off, 1=optional, 2=required */
 	unsigned int tls_flags;
 	unsigned int max_auth_rounds;
 	unsigned int max_auth_rounds_short;
