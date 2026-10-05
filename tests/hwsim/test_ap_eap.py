@@ -2448,6 +2448,50 @@ def test_ap_wpa2_eap_peap_crypto_binding(dev, apdev):
                 phase1="peapver=0 crypto_binding=0",
                 phase2="auth=MSCHAPV2")
 
+def test_ap_wpa2_eap_peap_crypto_binding_config(dev, apdev):
+    """PEAP cryptobinding policy configuration on the server"""
+    check_eap_capa(dev[0], "MSCHAPV2")
+
+    tests = [(0, 2, True), (1, 2, False), (2, 0, True), (2, 2, False)]
+    for server_policy, peer_policy, expect_failure in tests:
+        params = int_eap_server_params()
+        params["eap_peap_crypto_binding"] = str(server_policy)
+        hapd = hostapd.add_ap(apdev[0], params)
+        phase1 = f"peapver=0 crypto_binding={peer_policy}"
+        if server_policy == 2 and peer_policy == 0:
+            # This supplicant does not return cryptobinding. The server
+            # rejects the exchange with an outer EAP-Failure; wpa_supplicant
+            # reports that as a disconnection rather than EAP-FAILURE.
+            dev[0].connect("test-wpa2-eap",
+                           key_mgmt="WPA-EAP WPA-EAP-SHA256 WPA-EAP-SHA384",
+                           eap="PEAP", identity="user", password="password",
+                           ca_cert="auth_serv/ca.pem", phase1=phase1,
+                           phase2="auth=MSCHAPV2", wait_connect=False,
+                           scan_freq="2412", ieee80211w="1")
+            ev = dev[0].wait_event(["CTRL-EVENT-EAP-STARTED"], timeout=16)
+            if ev is None:
+                raise Exception("Association and EAP start timed out")
+            ev = dev[0].wait_event(["CTRL-EVENT-EAP-METHOD",
+                                    "CTRL-EVENT-EAP-FAILURE"], timeout=10)
+            if ev is None or "PEAP" not in ev:
+                raise Exception("PEAP method selection timed out")
+            ev = dev[0].wait_event(["CTRL-EVENT-CONNECTED",
+                                    "CTRL-EVENT-DISCONNECTED"], timeout=10)
+            if ev is None or "CTRL-EVENT-CONNECTED" in ev:
+                raise Exception("Required server cryptobinding was not enforced")
+            if "reason=23" not in ev:
+                raise Exception("Unexpected disconnect after required cryptobinding rejection: " + ev)
+        else:
+            eap_connect(dev[0], hapd, "PEAP", "user", password="password",
+                        ca_cert="auth_serv/ca.pem", phase1=phase1,
+                        phase2="auth=MSCHAPV2",
+                        expect_failure=expect_failure,
+                        local_error_report=expect_failure)
+        dev[0].request("REMOVE_NETWORK all")
+        if not expect_failure:
+            dev[0].wait_disconnected()
+        dev[0].dump_monitor()
+
 def test_ap_wpa2_eap_peap_crypto_binding_server_oom(dev, apdev):
     """WPA2-Enterprise connection using EAP-PEAPv0/EAP-MSCHAPv2 and crypto binding with server OOM"""
     check_eap_capa(dev[0], "MSCHAPV2")
