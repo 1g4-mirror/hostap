@@ -966,6 +966,19 @@ static void mlme_event_link_removal(struct wpa_driver_nl80211_data *drv,
 	drv->sta_mlo_info.valid_links &= ~removed_links;
 	drv->sta_mlo_info.req_links &= ~removed_links;
 
+	/*
+	 * Set default BSSID to the BSSID of the lowest link ID of remaining
+	 * links when the link used for (re)association is removed.
+	 */
+	if (removed_links & BIT(drv->sta_mlo_info.assoc_link_id)) {
+		for_each_link(drv->sta_mlo_info.valid_links, i) {
+			os_memcpy(drv->bssid, drv->sta_mlo_info.links[i].bssid,
+				  ETH_ALEN);
+			drv->sta_mlo_info.assoc_link_id = i;
+			break;
+		}
+	}
+
 	for (i = 0; i < MAX_NUM_MLD_LINKS; i++) {
 		if (!(removed_links & BIT(i)))
 			continue;
