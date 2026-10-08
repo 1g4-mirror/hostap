@@ -4875,14 +4875,14 @@ int wpas_p2p_get_vht160_center(struct wpa_supplicant *wpa_s,
 
 	/*
 	 * For 160 MHz operation on radar (DFS) channels:
-	 * - Check if DFS operation is allowed.
-	 * - Additionally, when coming up as part of GO negotiation with a peer
-	 *   (i.e., negotiated GO), do not allow upgrading to 160 MHz on radar
-	 *   channels unless assisted_dfs is set. For autonomous GO bring-up,
-	 *   allow as long as p2p_go_allow_dfs permits it.
+	 * - DFS offload permission allows operation directly.
+	 * - Assisted DFS permission is valid only while an assisted-DFS session
+	 *   is active.
 	 */
 	if (ret == RADAR) {
-		if (!wpa_s->p2p_go_allow_dfs && !wpa_s->allow_p2p_assisted_dfs)
+		if (!(wpa_s->p2p_go_allow_dfs ||
+		      (wpa_s->allow_p2p_assisted_dfs &&
+		       wpa_s->assisted_dfs)))
 			return 0;
 
 		/* For negotiated GO and P2P invitation, require assisted DFS */
