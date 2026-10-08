@@ -1901,7 +1901,8 @@ static void mlme_event(struct i802_bss *bss,
 	 * be addressed to the NAN Network ID or unicast to a forced address
 	 * (e.g., solicited publish replies, follow-ups), allow those, too.
 	 */
-	if (cmd == NL80211_CMD_FRAME && len >= 24) {
+	if (cmd == NL80211_CMD_FRAME &&
+	    len >= 24 + sizeof(mgmt->u.auth.auth_alg)) {
 		u16 fc;
 
 		mgmt = (const struct ieee80211_mgmt *) data;
