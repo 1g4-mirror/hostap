@@ -4563,7 +4563,7 @@ size_t wpa_auth_ml_group_kdes_len(struct wpa_state_machine *sm, u16 req_links)
 }
 
 
-u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos,
+u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos, u8 *end,
 			    u16 req_links)
 {
 	struct wpa_auth_ml_key_info ml_key_info;
@@ -4608,6 +4608,13 @@ u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos,
 				ml_key_info.links[i].gtk,
 				ml_key_info.links[i].gtk_len);
 
+		if (2 + RSN_SELECTOR_LEN + 1 + 6 +
+		    ml_key_info.links[i].gtk_len > end - pos) {
+			wpa_printf(MSG_INFO,
+				   "RSN: Not enough room in the buffer for MLO GTK");
+			return NULL;
+		}
+
 		*pos++ = WLAN_EID_VENDOR_SPECIFIC;
 		*pos++ = RSN_SELECTOR_LEN + 1 + 6 +
 			ml_key_info.links[i].gtk_len;
@@ -4643,6 +4650,14 @@ u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos,
 		wpa_hexdump_key(MSG_DEBUG, "RSN: MLO IGTK",
 				ml_key_info.links[i].igtk,
 				ml_key_info.links[i].igtk_len);
+
+		if ((long int) (2 + RSN_SELECTOR_LEN + 2 + 1 +
+				sizeof(ml_key_info.links[i].ipn) +
+				ml_key_info.links[i].igtk_len) > end - pos) {
+			wpa_printf(MSG_INFO,
+				   "RSN: Not enough room in the buffer for MLO IGTK");
+			return NULL;
+		}
 
 		*pos++ = WLAN_EID_VENDOR_SPECIFIC;
 		*pos++ = RSN_SELECTOR_LEN + 2 + 1 +
@@ -4687,6 +4702,14 @@ u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos,
 		wpa_hexdump_key(MSG_DEBUG, "RSN: MLO BIGTK",
 				ml_key_info.links[i].bigtk,
 				ml_key_info.links[i].igtk_len);
+
+		if ((long int) (2 + RSN_SELECTOR_LEN + 2 + 1 +
+				sizeof(ml_key_info.links[i].bipn) +
+				ml_key_info.links[i].igtk_len) > end - pos) {
+			wpa_printf(MSG_INFO,
+				   "RSN: Not enough room in the buffer for MLO BIGTK");
+			return NULL;
+		}
 
 		*pos++ = WLAN_EID_VENDOR_SPECIFIC;
 		*pos++ = RSN_SELECTOR_LEN + 2 + 1 +
@@ -4785,7 +4808,7 @@ static size_t wpa_auth_ml_kdes_len(struct wpa_state_machine *sm)
 }
 
 
-static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos)
+static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos, u8 *end)
 {
 #ifdef CONFIG_IEEE80211BE
 	u8 link_id;
@@ -4908,7 +4931,7 @@ static u8 * wpa_auth_ml_kdes(struct wpa_state_machine *sm, u8 *pos)
 	wpa_printf(MSG_DEBUG,
 		   "RSN: MLO Link KDEs and RSN Override Link KDEs len = %td",
 		   pos - start);
-	pos = wpa_auth_ml_group_kdes(sm, pos, KDE_ALL_LINKS);
+	pos = wpa_auth_ml_group_kdes(sm, pos, end, KDE_ALL_LINKS);
 #endif /* CONFIG_IEEE80211BE */
 
 	return pos;
@@ -5357,7 +5380,7 @@ SM_STATE(WPA_PTK, PTKINITNEGOTIATING)
 	}
 #endif /* CONFIG_DPP2 */
 
-	pos = wpa_auth_ml_kdes(sm, pos);
+	pos = wpa_auth_ml_kdes(sm, pos, kde + kde_len);
 	if (!pos) {
 		wpa_printf(MSG_ERROR, "RSN: Failed to add MLO KDEs");
 		goto done;
@@ -5797,7 +5820,12 @@ SM_STATE(WPA_PTK_GROUP, REKEYNEGOTIATING)
 				return;
 
 			kde = pos = kde_buf;
-			pos = wpa_auth_ml_group_kdes(sm, pos, KDE_ALL_LINKS);
+			pos = wpa_auth_ml_group_kdes(sm, pos, kde_buf + kde_len,
+						     KDE_ALL_LINKS);
+			if (!pos) {
+				os_free(kde_buf);
+				return;
+			}
 			kde_len = pos - kde_buf;
 		}
 #endif /* CONFIG_IEEE80211BE */
@@ -8107,7 +8135,7 @@ u8 * wpa_auth_eid_key_delivery(u8 *eid, size_t max_len,
 	u8 rsc[WPA_KEY_RSC_LEN] = {0}, *gtk;
 	struct wpa_group *gsm = sm->group;
 	u8 hdr[2];
-	u8 *kde, *buf, *start = eid, *end = eid + max_len;
+	u8 *kde, *buf, *end = eid + max_len;
 	const u8 *ptr;
 	size_t slice_len;
 	size_t buflen = 1024;
@@ -8117,13 +8145,16 @@ u8 * wpa_auth_eid_key_delivery(u8 *eid, size_t max_len,
 	/* TODO: Make sure there is sufficient length for the element */
 	buf = os_malloc(buflen);
 	if (!buf)
-		return eid;
+		return NULL;
 
 	ptr = buf;
 	kde = buf;
 	if (is_ml) {
 #ifdef CONFIG_IEEE80211BE
-		kde = wpa_auth_ml_group_kdes(sm, kde, KDE_ALL_LINKS);
+		kde = wpa_auth_ml_group_kdes(sm, kde, buf + buflen,
+					     KDE_ALL_LINKS);
+		if (!kde)
+			return NULL;
 		kde_len = wpa_auth_ml_group_kdes_len(sm, KDE_ALL_LINKS);
 #endif /* CONFIG_IEEE80211BE */
 	} else {
@@ -8200,7 +8231,7 @@ out:
 not_room:
 	wpa_printf(MSG_ERROR,
 		   "Not enough room for writing Key Delivery element");
-	eid = start;
+	eid = NULL;
 	goto out;
 }
 

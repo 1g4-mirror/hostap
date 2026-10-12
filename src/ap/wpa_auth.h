@@ -733,7 +733,7 @@ void wpa_release_link_auth_ref(struct wpa_state_machine *sm, u8 link_id,
 			       bool rejected);
 
 size_t wpa_auth_ml_group_kdes_len(struct wpa_state_machine *sm, u16 req_links);
-u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos,
+u8 * wpa_auth_ml_group_kdes(struct wpa_state_machine *sm, u8 *pos, u8 *end,
 			    u16 req_links);
 void wpa_reset_assoc_sm_info(struct wpa_state_machine *assoc_sm,
 			     struct wpa_authenticator *wpa_auth,

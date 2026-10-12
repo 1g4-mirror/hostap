@@ -8457,14 +8457,18 @@ rsnxe_done:
 		if (left <= 0) {
 			wpa_printf(MSG_ERROR,
 				   "EPP: No room for EPPKE/security profile in assoc resp");
-			goto no_room;
+			res = WLAN_STATUS_UNSPECIFIED_FAILURE;
+			goto done;
 		}
 		p = wpa_auth_write_assoc_resp_eppke(sta->wpa_sm, p, left,
 						    ap_sta_is_mld(hapd, sta));
+		if (!p) {
+			res = WLAN_STATUS_UNSPECIFIED_FAILURE;
+			goto done;
+		}
 
 		if (hapd->conf->security_profiles)
 			p = hostapd_eid_security_profile(hapd, p);
-	no_room:
 	}
 #endif /* CONFIG_ENC_ASSOC */
 

@@ -1951,7 +1951,7 @@ hostapd_send_link_reconf_resp(struct hostapd_data *hapd,
 			      struct sta_info *assoc_sta,
 			      struct link_reconf_req_list *req_list)
 {
-	u8 *buf, *orig_pos, *pos;
+	u8 *buf, *orig_pos, *pos, *end;
 	struct ieee80211_mgmt *mgmt;
 	struct link_reconf_req_info *info;
 	struct mld_info mld;
@@ -2029,6 +2029,7 @@ hostapd_send_link_reconf_resp(struct hostapd_data *hapd,
 			   len);
 		return -1;
 	}
+	end = buf + len;
 
 	mgmt = (struct ieee80211_mgmt *) buf;
 	mgmt->frame_control = IEEE80211_FC(WLAN_FC_TYPE_MGMT,
@@ -2075,7 +2076,11 @@ hostapd_send_link_reconf_resp(struct hostapd_data *hapd,
 		u8 *kde_pos = pos;
 
 		kde_pos = wpa_auth_ml_group_kdes(assoc_sta->wpa_sm, ++kde_pos,
-						 req_list->links_add_ok);
+						 end, req_list->links_add_ok);
+		if (!kde_pos) {
+			reject_all = true;
+			goto reject_all_req;
+		}
 		*pos = kde_pos - pos - 1;
 		if (kde_len - 1 != *pos) {
 			reject_all = true;
