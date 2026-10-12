@@ -1681,6 +1681,24 @@ enum qca_radiotap_vendor_ids {
  *     target peer/neighbor filter instead of the all-peer/all-neighbor filter.
  *     The attributes used with this subcommand are defined in
  *     enum qca_vendor_attr_extended_monitor.
+ *
+ * @QCA_NL80211_VENDOR_SUBCMD_UHR_OMP_REQUEST: Vendor subcommand used by a
+ *	UHR non-AP MLD STA that has an existing Multi-Link association with a
+ *	UHR AP MLD to request the driver to transmit a UHR operating mode and
+ *	parameters (OMP) request, i.e., a UHR Link Reconfiguration Request
+ *	frame with the Message Type field set to 3, as defined in IEEE
+ *	P802.11bn/D2.0, to enable, disable, or update the parameters of one
+ *	or more UHR modes.
+ *
+ *	The driver rejects this command if the interface does not have an
+ *	existing Multi-Link association with a UHR AP MLD. The driver/
+ *	firmware is responsible for triggering the corresponding hardware
+ *	mode change (e.g., EMLSR mode entry/exit), handling AP flow control
+ *	for the updated operating mode, and configuring the feature specific
+ *	parameters, synchronized with the over-the-air frame transmission.
+ *
+ *	The attributes used with this command are defined in enum
+ *	qca_wlan_vendor_attr_uhr_omp_request.
  */
 enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
@@ -1950,6 +1968,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_ROAM_STATUS = 283,
 	QCA_NL80211_VENDOR_SUBCMD_PREDICTIVE_ROAMING = 284,
 	QCA_NL80211_VENDOR_SUBCMD_EXTENDED_MONITOR = 285,
+	QCA_NL80211_VENDOR_SUBCMD_UHR_OMP_REQUEST = 286,
 };
 
 /* Compatibility defines for previously used subcmd names.
@@ -19829,6 +19848,41 @@ enum qca_wlan_vendor_attr_emlsr_info {
 	QCA_WLAN_VENDOR_ATTR_EMLSR_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_EMLSR_MAX =
 	QCA_WLAN_VENDOR_ATTR_EMLSR_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_uhr_omp_request - Attributes used by vendor
+ * command %QCA_NL80211_VENDOR_SUBCMD_UHR_OMP_REQUEST.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_UHR_OMP_REQUEST_LINK_ID: Optional attribute, u8.
+ * MLO link ID of the affiliated AP MLD link on which to transmit the UHR
+ * OMP request. If not present, the driver may transmit the request on
+ * any of the currently active links of the UHR non-AP MLD.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_UHR_OMP_REQUEST_EMLSR_MODE: Optional attribute, u8.
+ * Requests enabling or disabling EMLSR mode.
+ * 0 - Disable EMLSR mode
+ * 1 - Enable EMLSR mode
+ * When enabling, by default, the request applies to all the associated
+ * links of the UHR non-AP MLD.
+ *
+ * @QCA_WLAN_VENDOR_ATTR_UHR_OMP_REQUEST_EMLSR_PADDING_DELAY: Optional
+ * attribute, u8. Literal value to carry in the EMLSR Padding Delay field
+ * of the Mode Specific Parameters field for EMLSR in the UHR OMP request
+ * (not the actual padding delay duration). Applicable only when
+ * %QCA_WLAN_VENDOR_ATTR_UHR_OMP_REQUEST_EMLSR_MODE requests enabling EMLSR
+ * mode.
+ */
+enum qca_wlan_vendor_attr_uhr_omp_request {
+	QCA_WLAN_VENDOR_ATTR_UHR_OMP_REQUEST_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_UHR_OMP_REQUEST_LINK_ID = 1,
+	QCA_WLAN_VENDOR_ATTR_UHR_OMP_REQUEST_EMLSR_MODE = 2,
+	QCA_WLAN_VENDOR_ATTR_UHR_OMP_REQUEST_EMLSR_PADDING_DELAY = 3,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_UHR_OMP_REQUEST_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_UHR_OMP_REQUEST_MAX =
+	QCA_WLAN_VENDOR_ATTR_UHR_OMP_REQUEST_AFTER_LAST - 1,
 };
 
 /**
