@@ -4958,8 +4958,11 @@ static int wpa_supplicant_event_assoc(struct wpa_supplicant *wpa_s,
 		os_memset(wpa_s->pending_bssid, 0, ETH_ALEN);
 		wpas_notify_bssid_changed(wpa_s);
 
-		if (wpa_supplicant_dynamic_keys(wpa_s) && !ft_completed &&
-		    !wpa_s->assoc_resp_encrypted) {
+		if (wpa_supplicant_dynamic_keys(wpa_s) &&
+#ifdef CONFIG_ENC_ASSOC
+		    !wpa_s->assoc_resp_encrypted &&
+#endif /* CONFIG_ENC_ASSOC */
+		    !ft_completed) {
 			wpa_clear_keys(wpa_s, bssid);
 		}
 		if (wpa_supplicant_select_config(wpa_s, data) < 0) {
