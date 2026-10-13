@@ -111,6 +111,7 @@ static void hostapd_wpa_auth_config_update(struct hostapd_data *hapd,
 
 	pos = hostapd_eid_security_profile(hapd, _conf->security_profile);
 	_conf->security_profile_len = pos - _conf->security_profile;
+	_conf->pqc_enabled = hostapd_pqc_enabled(hapd->conf);
 }
 
 static void hostapd_wpa_auth_conf(struct hostapd_iface *iface,

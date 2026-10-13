@@ -123,7 +123,7 @@ static u16 wpa_own_rsn_capab(struct wpa_auth_config *conf,
 static u8 * rsne_write_data(u8 *buf, size_t len, u8 *pos, int group,
 			    int pairwise, int key_mgmt, u16 rsn_capab,
 			    const u8 *pmkid, enum mfp_options mfp,
-			    int group_mgmt_cipher)
+			    int group_mgmt_cipher, bool pqc_enabled)
 {
 	int num_suites, res;
 	u8 *count;
@@ -324,7 +324,7 @@ static u8 * rsne_write_data(u8 *buf, size_t len, u8 *pos, int group,
 	 * required to be included in the RSNE in Beacon/Probe Response frames
 	 * since they can be used only with security profiles.
 	 */
-	if (num_suites == 0 &&
+	if (num_suites == 0 && !pqc_enabled &&
 	    !(key_mgmt & (WPA_KEY_MGMT_PQC_8021X |
 			  WPA_KEY_MGMT_FT_PQC_8021X))) {
 		wpa_printf(MSG_DEBUG, "Invalid key management type (%d).",
@@ -418,7 +418,8 @@ int wpa_write_rsn_ie(struct wpa_auth_config *conf, u8 *buf, size_t len,
 	pos = rsne_write_data(buf, len, pos, conf->wpa_group,
 			      conf->rsn_pairwise, conf->wpa_key_mgmt,
 			      wpa_own_rsn_capab(conf, conf->ieee80211w), pmkid,
-			      conf->ieee80211w, conf->group_mgmt_cipher);
+			      conf->ieee80211w, conf->group_mgmt_cipher,
+			      conf->pqc_enabled);
 	if (!pos)
 		return -1;
 
@@ -448,7 +449,7 @@ static int wpa_write_rsne_override(struct wpa_auth_config *conf, u8 *buf,
 			      conf->rsn_override_key_mgmt,
 			      wpa_own_rsn_capab(conf, conf->rsn_override_mfp),
 			      NULL, conf->rsn_override_mfp,
-			      conf->group_mgmt_cipher);
+			      conf->group_mgmt_cipher, conf->pqc_enabled);
 	if (!pos)
 		return -1;
 
@@ -478,7 +479,7 @@ static int wpa_write_rsne_override_2(struct wpa_auth_config *conf, u8 *buf,
 			      conf->rsn_override_key_mgmt_2,
 			      wpa_own_rsn_capab(conf, conf->rsn_override_mfp_2),
 			      NULL, conf->rsn_override_mfp_2,
-			      conf->group_mgmt_cipher);
+			      conf->group_mgmt_cipher, conf->pqc_enabled);
 	if (!pos)
 		return -1;
 
@@ -506,7 +507,7 @@ int wpa_write_802_1x_rsne(struct wpa_authenticator *wpa_auth, u8 *buf,
 	pos = rsne_write_data(buf, len, pos, group_cipher,
 			      pairwise_cipher, akmp,
 			      wpa_own_rsn_capab(conf, conf->ieee80211w),
-			      pmkid, mfp, group_mgmt_cipher);
+			      pmkid, mfp, group_mgmt_cipher, conf->pqc_enabled);
 	if (!pos)
 		return -1;
 
@@ -542,7 +543,7 @@ int wpa_write_eppke_rsne(const u8 *wpa_ie, size_t wpa_ie_len,
 	}
 	pos = rsne_write_data(buf, len, pos, data.group_cipher, pairwise_cipher,
 			      akmp, data.capabilities, pmkid, mfp,
-			      data.mgmt_group_cipher);
+			      data.mgmt_group_cipher, false);
 	if (!pos)
 		return -1;
 

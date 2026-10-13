@@ -341,6 +341,7 @@ struct wpa_auth_config {
 
 	u8 security_profile[257];
 	size_t security_profile_len;
+	bool pqc_enabled;
 };
 
 typedef enum {
