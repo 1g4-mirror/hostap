@@ -2285,8 +2285,8 @@ struct wpabuf * crypto_ecdh_set_peerkey(struct crypto_ecdh *ecdh, int inc_y,
 	ecc_point *point = NULL;
 	size_t need_key_len = inc_y ? 2 * key_len : key_len;
 
-	if (len < need_key_len) {
-		LOG_WOLF_ERROR("key len too small");
+	if (len != need_key_len) {
+		LOG_WOLF_ERROR("invalid key len");
 		goto fail;
 	}
 	pubkey = wpabuf_alloc(1 + 2 * key_len);
