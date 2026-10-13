@@ -3308,7 +3308,9 @@ u16 wpa_auth_validate_802_1x_frame(struct hostapd_data *hapd,
 	bool enc_assoc = ap_sta_support_enc_assoc(hapd,
 						  elems->rsnxe,
 						  elems->rsnxe_len);
+#ifdef CONFIG_PQC
 	bool pmkid_included = false;
+#endif /* CONFIG_PQC */
 
 	/* Per IEEE P802.11bi/D4.0, 12.16.8.3 (IEEE 802.1X), an originator that
 	 * sets dot11EPPReAssociationFrameEncryptionSupportActivated to false or
@@ -3380,7 +3382,9 @@ u16 wpa_auth_validate_802_1x_frame(struct hostapd_data *hapd,
 		wpa_printf(MSG_DEBUG, "Received keymgmt (0x%x) in RSNE",
 			   rsn.key_mgmt);
 
+#ifdef CONFIG_PQC
 		pmkid_included = rsn.num_pmkid;
+#endif /* CONFIG_PQC */
 	}
 
 	/* Validate AKM Suite Selector element */
