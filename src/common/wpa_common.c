@@ -3563,13 +3563,15 @@ int wpa_compare_rsn_ie(int ft_initial_assoc,
  * @rsne1_len: Length of the first RSNE
  * @rsnee2: Pointer to second RSNE (with element ID and length)
  * @rsne2_len: Length of the second RSNE
+ * @pqc_sec_prof: Whether a PQC security profile is being used
  * Returns: 0 if parameters match, -1 otherwise
  *
  * Compare the security parameters (proto, ciphers, key_mgmt)
  * of two RSN IEs.
  */
 int wpa_compare_rsne_params(const u8 *rsne1, size_t rsne1_len,
-			    const u8 *rsne2, size_t rsne2_len)
+			    const u8 *rsne2, size_t rsne2_len,
+			    bool pqc_sec_prof)
 {
 	struct wpa_ie_data rsn1, rsn2;
 
@@ -3579,6 +3581,15 @@ int wpa_compare_rsne_params(const u8 *rsne1, size_t rsne1_len,
 	if (wpa_parse_wpa_ie_rsn(rsne1, rsne1_len, &rsn1) < 0 ||
 	    wpa_parse_wpa_ie_rsn(rsne2, rsne2_len, &rsn2) < 0)
 		return -1;
+
+	if (pqc_sec_prof) {
+		/* PQC AKMs are not required to be included in the RSNE, so mask
+		 * them out from the comparison below.*/
+		rsn1.key_mgmt &= ~(WPA_KEY_MGMT_PQC_8021X |
+				   WPA_KEY_MGMT_FT_PQC_8021X);
+		rsn2.key_mgmt &= ~(WPA_KEY_MGMT_PQC_8021X |
+				   WPA_KEY_MGMT_FT_PQC_8021X);
+	}
 
 	if (rsn1.proto == rsn2.proto &&
 	    rsn1.pairwise_cipher == rsn2.pairwise_cipher &&

@@ -3777,10 +3777,13 @@ static int sme_validate_8021x_auth_elems(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
-	if (wpa_compare_rsne_params(wpa_s->auth_1x->rsne,
-				    wpa_s->auth_1x->rsne_len,
-				    elems->rsn_ie - 2,
-				    elems->rsn_ie_len + 2) != 0) {
+	if (wpa_compare_rsne_params(
+		    wpa_s->auth_1x->rsne,
+		    wpa_s->auth_1x->rsne_len,
+		    elems->rsn_ie - 2,
+		    elems->rsn_ie_len + 2,
+		    wpa_s->sel_security_profile &&
+		    sec_prof_pqc(wpa_s->sel_security_profile->number)) != 0) {
 		wpa_msg(wpa_s, MSG_INFO, "IEEE 802.1X: RSNE mismatch");
 		return -1;
 	}
