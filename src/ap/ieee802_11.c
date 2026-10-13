@@ -5580,6 +5580,7 @@ static void handle_auth(struct hostapd_data *hapd,
 
 #ifdef CONFIG_IEEE8021X_AUTH
 	if (auth_alg == WLAN_AUTH_802_1X &&
+	    !hostapd_pqc_enabled(hapd->conf) &&
 	    !hapd->conf->eap_using_authentication_frames) {
 		wpa_printf(MSG_INFO,
 			   "Unsupported authentication algorithm (%d)",
@@ -5628,7 +5629,8 @@ static void handle_auth(struct hostapd_data *hapd,
 #endif /* CONFIG_ENC_ASSOC */
 #ifdef CONFIG_IEEE8021X_AUTH
 	      (hapd->conf->wpa &&
-	       wpa_key_mgmt_wpa_ieee8021x(hapd->conf->wpa_key_mgmt) &&
+	       (wpa_key_mgmt_wpa_ieee8021x(hapd->conf->wpa_key_mgmt) ||
+		hostapd_pqc_enabled(hapd->conf)) &&
 	       auth_alg == WLAN_AUTH_802_1X) ||
 #endif /* CONFIG_IEEE8021X_AUTH */
 	      ((hapd->conf->auth_algs & WPA_AUTH_ALG_SHARED) &&
