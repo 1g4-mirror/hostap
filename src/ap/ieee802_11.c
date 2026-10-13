@@ -702,6 +702,7 @@ static u16 auth_shared_key(struct hostapd_data *hapd, struct sta_info *sta,
 
 #ifdef CONFIG_IEEE8021X_AUTH
 
+#ifdef CONFIG_PQC
 static int init_auth_transcript(struct sta_info *sta)
 {
 	enum crypto_hash_alg alg;
@@ -738,6 +739,7 @@ static int init_auth_transcript(struct sta_info *sta)
 
 	return 0;
 }
+#endif /* CONFIG_PQC */
 
 
 static int add_to_auth_transcript(struct sta_info *sta,
@@ -3857,6 +3859,7 @@ static void handle_auth_802_1x(struct hostapd_data *hapd, struct sta_info *sta,
 				goto fail;
 			}
 
+#ifdef CONFIG_PQC
 			if (sta->eap_auth_data.pqc_profile &&
 			    (!sp ||
 			     sta->eap_auth_data.security_profile !=
@@ -3871,6 +3874,7 @@ static void handle_auth_802_1x(struct hostapd_data *hapd, struct sta_info *sta,
 				resp = WLAN_STATUS_REJECTED_INVALID_SECURITY_PROFILE;
 				goto fail;
 			}
+#endif /* CONFIG_PQC */
 		}
 
 		enc_assoc = ap_sta_support_enc_assoc(hapd, elems.rsnxe,
