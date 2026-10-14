@@ -2551,3 +2551,12 @@ const u8 * wpa_bss_get_rsnxe(struct wpa_supplicant *wpa_s,
 out:
 	return wpa_bss_get_ie(bss, WLAN_EID_RSNX);
 }
+
+
+bool wpa_bss_security_profile_enabled(const struct wpa_bss *bss, int profile)
+{
+	const u8 *sp;
+
+	sp = wpa_bss_get_ie_ext(bss, WLAN_EID_EXT_SECURITY_PROFILE);
+	return security_profile_is_enabled(sp, profile);
+}

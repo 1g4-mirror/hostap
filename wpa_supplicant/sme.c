@@ -1774,11 +1774,21 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_WEP */
 
 #ifdef CONFIG_IEEE8021X_AUTH
-	if ((ssid->eap_over_auth_frame &&
-	     wpa_key_mgmt_wpa_ieee8021x(ssid->key_mgmt &
-					~WPA_KEY_MGMT_IEEE8021X)) ||
-	    (wpas_security_profile_active(wpa_s) &&
-	     sec_prof_list_has_eap_over_auth(ssid->security_profiles))) {
+	if ((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_802_1X_AUTH) &&
+	    wpas_security_profile_active(wpa_s) &&
+	    sec_prof_list_has_eap_over_auth(ssid->security_profiles) &&
+	    wpa_s->sel_security_profile &&
+	    wpa_s->sel_security_profile->ieee8021x_auth_frame &&
+	    wpa_bss_security_profile_enabled(
+		    bss, wpa_s->sel_security_profile->number)) {
+		wpa_dbg(wpa_s, MSG_DEBUG,
+			"Using IEEE 802.1X authentication using Authentication frames (security profile %d)",
+			wpa_s->sel_security_profile->number);
+		params.auth_alg = WPA_AUTH_ALG_802_1X;
+	} else if ((wpa_s->drv_flags2 & WPA_DRIVER_FLAGS2_802_1X_AUTH) &&
+		   ssid->eap_over_auth_frame &&
+		   wpa_key_mgmt_wpa_ieee8021x(ssid->key_mgmt &
+					      ~WPA_KEY_MGMT_IEEE8021X)) {
 		const u8 *rsne;
 		struct wpa_ie_data ied;
 
@@ -1792,9 +1802,7 @@ static void sme_send_authentication(struct wpa_supplicant *wpa_s,
 				   ied.key_mgmt & ~WPA_KEY_MGMT_IEEE8021X)) {
 			if (wpas_eppke_ap_rsnx_capab(
 				    wpa_s, bss,
-				    WLAN_RSNX_CAPAB_802_1X_IN_AUTH_FRAMES) &&
-			    (wpa_s->drv_flags2 &
-			     WPA_DRIVER_FLAGS2_802_1X_AUTH)) {
+				    WLAN_RSNX_CAPAB_802_1X_IN_AUTH_FRAMES)) {
 				wpa_dbg(wpa_s, MSG_DEBUG,
 					"Using IEEE 802.1X authentication using Authentication frames");
 				params.auth_alg = WPA_AUTH_ALG_802_1X;

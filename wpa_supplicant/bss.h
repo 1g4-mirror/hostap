@@ -239,5 +239,6 @@ const u8 * wpa_bss_get_rsne(struct wpa_supplicant *wpa_s,
 const u8 * wpa_bss_get_rsnxe(struct wpa_supplicant *wpa_s,
 			     const struct wpa_bss *bss, struct wpa_ssid *ssid,
 			     bool mlo);
+bool wpa_bss_security_profile_enabled(const struct wpa_bss *bss, int profile);
 
 #endif /* BSS_H */
