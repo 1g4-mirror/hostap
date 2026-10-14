@@ -1824,6 +1824,26 @@ int security_profile_get_rsn_caps(const u8 *sp)
 }
 
 
+bool security_profile_is_enabled(const u8 *sp, int profile)
+{
+	u8 bitmap_len, num_vendor;
+	const u8 *bitmap;
+
+	if (!sp || sp[1] < 3)
+		return false;
+
+	bitmap_len = sp[4] & 0x0F;
+	num_vendor = (sp[4] & 0xF0) >> 4;
+	if (sp[1] < 3 + bitmap_len + 4 * num_vendor)
+		return false;
+
+	bitmap = sp + 5;
+
+	return profile >= 0 && profile < bitmap_len * 8 &&
+		(bitmap[profile / 8] & BIT(profile % 8));
+}
+
+
 static void
 wpas_set_mgmt_group_cipher(struct wpa_supplicant *wpa_s,
 			   struct wpa_ssid *ssid, struct wpa_ie_data *ie,
