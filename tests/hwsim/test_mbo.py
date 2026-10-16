@@ -367,6 +367,48 @@ def test_mbo_cell_capa_update_pmf(dev, apdev):
     if sta['mbo_cell_capa'] != '3':
         raise Exception("mbo_cell_capa not updated properly")
 
+@remote_compatible
+def test_mbo_cell_capa_update_sae(dev, apdev):
+    """MBO cellular data capability update with SAE"""
+    ssid = "test-wnm-mbo-sae"
+    password = "12345678"
+    params = hostapd.wpa3_params(ssid=ssid, password=password)
+    params['mbo'] = '1'
+    hapd = hostapd.add_ap(apdev[0], params)
+    bssid = apdev[0]['bssid']
+    if "OK" not in dev[0].request("SET mbo_cell_capa 1"):
+        raise Exception("Failed to set STA as cellular data capable")
+
+    dev[0].set("sae_groups", "")
+    dev[0].set("dot11RSNAConfigPMKLifetime", "10")
+    dev[0].set("dot11RSNAConfigPMKReauthThreshold", "30")
+    dev[0].connect(ssid, sae_password=password, key_mgmt="SAE",
+                   ieee80211w="2", scan_freq="2412")
+    hapd.wait_sta()
+
+    addr = dev[0].own_addr()
+    sta = hapd.get_sta(addr)
+    if 'mbo_cell_capa' not in sta or sta['mbo_cell_capa'] != '1':
+        raise Exception("mbo_cell_capa missing after association")
+
+    ev = dev[0].wait_event(["PMKSA-CACHE-REMOVED"], timeout=5)
+    if ev is not None:
+        raise Exception("Current SAE PMKSA entry removed unexpectedly")
+
+    if "OK" not in dev[0].request("SET mbo_cell_capa 3"):
+        raise Exception("Failed to set STA as cellular data not-capable")
+
+    time.sleep(0.2)
+    sta = hapd.get_sta(addr)
+    if 'mbo_cell_capa' not in sta:
+        raise Exception("mbo_cell_capa missing after update")
+    if sta['mbo_cell_capa'] != '3':
+        raise Exception("mbo_cell_capa not updated properly")
+
+    ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED"], timeout=15)
+    if ev:
+        raise Exception("Unexpected disconnection after MBO update")
+
 def test_mbo_wnm_token_wrap(dev, apdev):
     """MBO WNM token wrap around"""
     ssid = "test-wnm-mbo"
