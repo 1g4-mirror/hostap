@@ -17,6 +17,7 @@
 #include "gas.h"
 #include "wpa_common.h"
 #include "sae.h"
+#include "dpp.h"
 
 
 struct ieee802_11_parse_test_data {
@@ -781,6 +782,172 @@ static int pasn_tests(void)
 }
 
 
+#ifdef CONFIG_DPP
+
+static struct wpabuf * dpp_pkex_test_key_len(const struct wpabuf *msg,
+					      int delta)
+{
+	const u8 *pos = wpabuf_head_u8(msg) + 8;
+	const u8 *end = wpabuf_head_u8(msg) + wpabuf_len(msg);
+	struct wpabuf *buf, *ret;
+
+	buf = wpabuf_alloc(wpabuf_len(msg) + 2);
+	if (!buf)
+		return NULL;
+
+	while (end - pos >= 4) {
+		u16 id = WPA_GET_LE16(pos);
+		u16 alen = WPA_GET_LE16(pos + 2);
+
+		pos += 4;
+		if (alen > end - pos)
+			break;
+		wpabuf_put_le16(buf, id);
+		if (id == DPP_ATTR_ENCRYPTED_KEY) {
+			wpabuf_put_le16(buf, alen + delta);
+			if (delta < 0) {
+				wpabuf_put_data(buf, pos, alen + delta);
+			} else {
+				wpabuf_put_data(buf, pos, alen);
+				wpabuf_put(buf, delta);
+			}
+		} else {
+			wpabuf_put_le16(buf, alen);
+			wpabuf_put_data(buf, pos, alen);
+		}
+		pos += alen;
+	}
+
+	ret = wpabuf_dup(buf);
+	wpabuf_free(buf);
+	return ret;
+}
+
+
+static int dpp_pkex_tests(void)
+{
+	struct dpp_global_config config;
+	struct dpp_global *dpp;
+	struct dpp_bootstrap_info *bi_i, *bi_r;
+	struct dpp_pkex *init = NULL, *resp = NULL;
+	struct wpabuf *buf = NULL, *msg = NULL;
+	const u8 addr_i[ETH_ALEN] = { 0x02, 0x00, 0x00, 0x00, 0x00, 0x01 };
+	const u8 addr_r[ETH_ALEN] = { 0x02, 0x00, 0x00, 0x00, 0x00, 0x02 };
+	const char *code = "pkex test code";
+	const int delta[] = { -2, 2 };
+	unsigned int i;
+	int ret = -1;
+
+	wpa_printf(MSG_INFO, "DPP PKEX tests");
+
+	os_memset(&config, 0, sizeof(config));
+	dpp = dpp_global_init(&config);
+	if (!dpp)
+		return -1;
+	bi_i = dpp_bootstrap_get_id(dpp, dpp_bootstrap_gen(
+					    dpp, "type=pkex curve=prime256v1"));
+	bi_r = dpp_bootstrap_get_id(dpp, dpp_bootstrap_gen(
+					    dpp, "type=pkex curve=prime256v1"));
+	if (!bi_i || !bi_r)
+		goto fail;
+
+	for (i = 0; i <= ARRAY_SIZE(delta); i++) {
+		init = dpp_pkex_init(NULL, bi_i, addr_i, NULL, code,
+				     os_strlen(code), false);
+		if (!init)
+			goto fail;
+
+		if (i < ARRAY_SIZE(delta)) {
+			buf = dpp_pkex_test_key_len(init->exchange_req,
+						    delta[i]);
+			if (!buf)
+				goto fail;
+			resp = dpp_pkex_rx_exchange_req(NULL, bi_r, addr_r,
+							addr_i, NULL, code,
+							os_strlen(code),
+							wpabuf_head(buf),
+							wpabuf_len(buf), false);
+			if (resp) {
+				wpa_printf(MSG_ERROR,
+					   "DPP PKEX: Exchange Request with Encrypted Key length %d accepted",
+					   (int) (2 * bi_r->curve->prime_len) +
+					   delta[i]);
+				goto fail;
+			}
+			wpabuf_free(buf);
+			buf = NULL;
+		}
+
+		resp = dpp_pkex_rx_exchange_req(
+			NULL, bi_r, addr_r, addr_i, NULL, code,
+			os_strlen(code), wpabuf_head_u8(init->exchange_req) + 8,
+			wpabuf_len(init->exchange_req) - 8, false);
+		if (!resp || !resp->exchange_resp) {
+			wpa_printf(MSG_ERROR,
+				   "DPP PKEX: Valid Exchange Request rejected");
+			goto fail;
+		}
+
+		if (i < ARRAY_SIZE(delta)) {
+			buf = dpp_pkex_test_key_len(resp->exchange_resp,
+						    delta[i]);
+			if (!buf)
+				goto fail;
+			msg = dpp_pkex_rx_exchange_resp(init, addr_r,
+							wpabuf_head(buf),
+							wpabuf_len(buf));
+			if (msg) {
+				wpa_printf(MSG_ERROR,
+					   "DPP PKEX: Exchange Response with Encrypted Key length %d accepted",
+					   (int) (2 * bi_i->curve->prime_len) +
+					   delta[i]);
+				goto fail;
+			}
+		} else {
+			msg = dpp_pkex_rx_exchange_resp(
+				init, addr_r,
+				wpabuf_head_u8(resp->exchange_resp) + 8,
+				wpabuf_len(resp->exchange_resp) - 8);
+			if (!msg) {
+				wpa_printf(MSG_ERROR,
+					   "DPP PKEX: Valid Exchange Response rejected");
+				goto fail;
+			}
+		}
+
+		wpabuf_free(buf);
+		buf = NULL;
+		wpabuf_free(msg);
+		msg = NULL;
+		dpp_pkex_free(init);
+		init = NULL;
+		dpp_pkex_free(resp);
+		resp = NULL;
+	}
+
+	ret = 0;
+fail:
+	wpabuf_free(buf);
+	wpabuf_free(msg);
+	dpp_pkex_free(init);
+	dpp_pkex_free(resp);
+	dpp_global_deinit(dpp);
+	return ret;
+}
+
+#endif /* CONFIG_DPP */
+
+
+static int dpp_tests(void)
+{
+#ifdef CONFIG_DPP
+	if (dpp_pkex_tests() < 0)
+		return -1;
+#endif /* CONFIG_DPP */
+	return 0;
+}
+
+
 int common_module_tests(void)
 {
 	int ret = 0;
@@ -792,6 +959,7 @@ int common_module_tests(void)
 	    sae_tests() < 0 ||
 	    sae_pk_tests() < 0 ||
 	    pasn_tests() < 0 ||
+	    dpp_tests() < 0 ||
 	    rsn_ie_parse_tests() < 0)
 		ret = -1;
 

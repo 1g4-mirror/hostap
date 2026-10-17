@@ -432,8 +432,7 @@ struct dpp_pkex * dpp_pkex_rx_exchange_req(void *msg_ctx,
 	/* M in Encrypted Key attribute */
 	attr_key = dpp_get_attr(buf, len, DPP_ATTR_ENCRYPTED_KEY,
 				&attr_key_len);
-	if (!attr_key || attr_key_len & 0x01 || attr_key_len < 2 ||
-	    attr_key_len / 2 > DPP_MAX_SHARED_SECRET_LEN) {
+	if (!attr_key || attr_key_len != 2 * curve->prime_len) {
 		wpa_msg(msg_ctx, MSG_INFO, DPP_EVENT_FAIL
 			"Missing Encrypted Key attribute");
 		return NULL;
@@ -789,7 +788,7 @@ struct wpabuf * dpp_pkex_rx_exchange_resp(struct dpp_pkex *pkex,
 	/* N in Encrypted Key attribute */
 	attr_key = dpp_get_attr(buf, buflen, DPP_ATTR_ENCRYPTED_KEY,
 				&attr_key_len);
-	if (!attr_key || attr_key_len & 0x01 || attr_key_len < 2) {
+	if (!attr_key || attr_key_len != 2 * curve->prime_len) {
 		dpp_pkex_fail(pkex, "Missing Encrypted Key attribute");
 		return NULL;
 	}
