@@ -179,7 +179,7 @@ void hostapd_tx_status(struct hostapd_data *hapd, const u8 *addr,
 void ieee802_11_rx_from_unknown(struct hostapd_data *hapd, const u8 *src,
 				int wds);
 u8 * hostapd_eid_assoc_comeback_time(struct hostapd_data *hapd,
-				     struct sta_info *sta, u8 *eid);
+				     struct sta_info *sta, u8 *eid, u8 *end);
 void ieee802_11_sa_query_action(struct hostapd_data *hapd,
 				const struct ieee80211_mgmt *mgmt,
 				size_t len);

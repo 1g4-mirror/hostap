@@ -8273,7 +8273,7 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 #endif /* CONFIG_OWE */
 
 	if (sta && status_code == WLAN_STATUS_ASSOC_REJECTED_TEMPORARILY)
-		p = hostapd_eid_assoc_comeback_time(hapd, sta, p);
+		p = hostapd_eid_assoc_comeback_time(hapd, sta, p, end);
 
 	p = hostapd_eid_ht_capabilities(hapd, p);
 	p = hostapd_eid_ht_operation(hapd, p);

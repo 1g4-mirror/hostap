@@ -22,8 +22,10 @@
 #include "ieee802_11.h"
 
 
-static u8 * hostapd_eid_timeout_interval(u8 *pos, u8 type, u32 value)
+static u8 * hostapd_eid_timeout_interval(u8 *pos, u8 *end, u8 type, u32 value)
 {
+	if (end - pos < 7)
+		return pos;
 	*pos++ = WLAN_EID_TIMEOUT_INTERVAL;
 	*pos++ = 5;
 	*pos++ = type;
@@ -35,7 +37,7 @@ static u8 * hostapd_eid_timeout_interval(u8 *pos, u8 type, u32 value)
 
 
 u8 * hostapd_eid_assoc_comeback_time(struct hostapd_data *hapd,
-				     struct sta_info *sta, u8 *eid)
+				     struct sta_info *sta, u8 *eid, u8 *end)
 {
 	u32 timeout, tu;
 	struct os_reltime now, passed;
@@ -55,7 +57,7 @@ u8 * hostapd_eid_assoc_comeback_time(struct hostapd_data *hapd,
 	if (hapd->conf->test_assoc_comeback_type != -1)
 		type = hapd->conf->test_assoc_comeback_type;
 #endif /* CONFIG_TESTING_OPTIONS */
-	return hostapd_eid_timeout_interval(eid, type, timeout);
+	return hostapd_eid_timeout_interval(eid, end, type, timeout);
 }
 
 
