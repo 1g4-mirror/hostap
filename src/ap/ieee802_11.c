@@ -8143,7 +8143,7 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 			   int omit_rsnxe)
 {
 	int send_len;
-	u8 *buf;
+	u8 *buf, *end;
 	size_t buflen;
 	struct ieee80211_mgmt *reply;
 	u8 *p;
@@ -8193,6 +8193,7 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 		res = WLAN_STATUS_UNSPECIFIED_FAILURE;
 		goto done;
 	}
+	end = buf + buflen;
 	reply = (struct ieee80211_mgmt *) buf;
 	reply->frame_control =
 		IEEE80211_FC(WLAN_FC_TYPE_MGMT,
@@ -8217,21 +8218,20 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 	p = hostapd_eid_ext_supp_rates(hapd, p);
 
 	/* Radio measurement capabilities */
-	p = hostapd_eid_rm_enabled_capab(hapd, p, buf + buflen - p);
+	p = hostapd_eid_rm_enabled_capab(hapd, p, end - p);
 
 #ifdef CONFIG_MBO
 	if (status_code == WLAN_STATUS_DENIED_POOR_CHANNEL_CONDITIONS &&
 	    rssi != 0) {
 		int delta = hapd->iconf->rssi_reject_assoc_rssi - rssi;
 
-		p = hostapd_eid_mbo_rssi_assoc_rej(hapd, p, buf + buflen - p,
-						   delta);
+		p = hostapd_eid_mbo_rssi_assoc_rej(hapd, p, end - p, delta);
 	}
 #endif /* CONFIG_MBO */
 
 #ifdef CONFIG_IEEE80211R_AP
 	if (sta && status_code == WLAN_STATUS_SUCCESS) {
-		size_t left = buf + buflen - p;
+		size_t left = end - p;
 
 		/* Try to minimize risk of running out of room for additional
 		 * elements after the FT related ones. */
@@ -8263,15 +8263,13 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 	    (sta->auth_alg == WLAN_AUTH_FILS_SK ||
 	     sta->auth_alg == WLAN_AUTH_FILS_SK_PFS ||
 	     sta->auth_alg == WLAN_AUTH_FILS_PK))
-		p = wpa_auth_write_assoc_resp_fils(sta->wpa_sm, p,
-						   buf + buflen - p);
+		p = wpa_auth_write_assoc_resp_fils(sta->wpa_sm, p, end - p);
 #endif /* CONFIG_FILS */
 
 #ifdef CONFIG_OWE
 	if (sta && status_code == WLAN_STATUS_SUCCESS &&
 	    ((hostapd_config_all_key_mgmt(hapd->conf)) & WPA_KEY_MGMT_OWE))
-		p = wpa_auth_write_assoc_resp_owe(sta->wpa_sm, p,
-						  buf + buflen - p);
+		p = wpa_auth_write_assoc_resp_owe(sta->wpa_sm, p, end - p);
 #endif /* CONFIG_OWE */
 
 	if (sta && status_code == WLAN_STATUS_ASSOC_REJECTED_TEMPORARILY)
@@ -8331,8 +8329,7 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 
 #ifdef CONFIG_TESTING_OPTIONS
 	if (hapd->conf->rsnxe_override_ft &&
-	    buf + buflen - p >=
-	    (long int) wpabuf_len(hapd->conf->rsnxe_override_ft) &&
+	    end - p >= (long int) wpabuf_len(hapd->conf->rsnxe_override_ft) &&
 	    sta && sta->auth_alg == WLAN_AUTH_FT) {
 		wpa_printf(MSG_DEBUG, "TESTING: RSNXE FT override");
 		os_memcpy(p, wpabuf_head(hapd->conf->rsnxe_override_ft),
@@ -8342,7 +8339,7 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 	}
 #endif /* CONFIG_TESTING_OPTIONS */
 	if (!omit_rsnxe)
-		p = hostapd_eid_rsnxe(hapd, p, buf + buflen - p,
+		p = hostapd_eid_rsnxe(hapd, p, end - p,
 				      hapd->conf->rsnxe_capab_mask);
 #ifdef CONFIG_TESTING_OPTIONS
 rsnxe_done:
@@ -8475,7 +8472,7 @@ rsnxe_done:
 #endif /* CONFIG_SAE */
 #endif /* CONFIG_PMKSA_PRIVACY */
 
-		left = buf + buflen - p - hostapd_security_profile_len(hapd);
+		left = end - p - hostapd_security_profile_len(hapd);
 		if (left <= 0) {
 			wpa_printf(MSG_ERROR,
 				   "EPP: No room for EPPKE/security profile in assoc resp");
@@ -8526,7 +8523,7 @@ rsnxe_done:
 #endif /* CONFIG_WPS */
 
 	if (sta && (sta->flags & WLAN_STA_MULTI_AP))
-		p = hostapd_eid_multi_ap(hapd, p, buf + buflen - p);
+		p = hostapd_eid_multi_ap(hapd, p, end - p);
 
 #ifdef CONFIG_P2P
 	if (sta && sta->p2p_ie && hapd->p2p_group) {
@@ -8558,12 +8555,11 @@ rsnxe_done:
 		p = hostapd_eid_p2p_manage(hapd, p);
 #endif /* CONFIG_P2P_MANAGER */
 
-	p = hostapd_eid_mbo(hapd, p, buf + buflen - p);
+	p = hostapd_eid_mbo(hapd, p, end - p);
 	p = hostapd_eid_wfa_capab(hapd, sta, p);
 
 	if (hapd->conf->assocresp_elements &&
-	    (size_t) (buf + buflen - p) >=
-	    wpabuf_len(hapd->conf->assocresp_elements)) {
+	    (size_t) (end - p) >= wpabuf_len(hapd->conf->assocresp_elements)) {
 		os_memcpy(p, wpabuf_head(hapd->conf->assocresp_elements),
 			  wpabuf_len(hapd->conf->assocresp_elements));
 		p += wpabuf_len(hapd->conf->assocresp_elements);
