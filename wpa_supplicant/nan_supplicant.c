@@ -4899,6 +4899,7 @@ static bool wpas_nan_is_peer_paired_cb(void *ctx, const u8 *peer_addr)
 #endif /* CONFIG_NAN && CONFIG_PASN */
 
 
+#ifdef CONFIG_NAN
 static struct dl_list * wpas_nan_de_get_nik_list(void *ctx, u8 tag_type)
 {
 	struct wpa_supplicant *wpa_s = ctx;
@@ -4909,6 +4910,7 @@ static struct dl_list * wpas_nan_de_get_nik_list(void *ctx, u8 tag_type)
 
 	return nan_get_nik_list(wpa_s->nan, nik_type);
 }
+#endif /* CONFIG_NAN */
 
 
 int wpas_nan_de_init(struct wpa_supplicant *wpa_s)
