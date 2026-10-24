@@ -845,7 +845,7 @@ int crypto_ec_point_to_bin(struct crypto_ec *e,
  * @val: Binary data to read the EC point from
  * Returns: Pointer to EC point data or %NULL on failure
  *
- * This function readers x and y coordinates of the EC point from the provided
+ * This function reads x and y coordinates of the EC point from the provided
  * buffer assuming the values are in big endian byte order with fields padded to
  * the length of the prime defining the group.
  */
