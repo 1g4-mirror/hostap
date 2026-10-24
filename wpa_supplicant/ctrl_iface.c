@@ -11109,7 +11109,10 @@ static int wpas_ctrl_iface_send_neighbor_rep(struct wpa_supplicant *wpa_s,
 
 	ssid_s = os_strstr(cmd, "ssid=");
 	if (ssid_s) {
-		if (ssid_parse(ssid_s + 5, &ssid)) {
+		os_memset(&ssid, 0, sizeof(ssid));
+		if (os_strncmp(ssid_s + 5, "wildcard", 8)== 0) {
+			/* Use 0-length wildcard SSID */
+		} else if (ssid_parse(ssid_s + 5, &ssid)) {
 			wpa_msg(wpa_s, MSG_INFO,
 				"CTRL: Send Neighbor Report: bad SSID");
 			return -1;
