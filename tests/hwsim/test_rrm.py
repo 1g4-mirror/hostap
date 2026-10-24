@@ -258,10 +258,6 @@ def test_rrm_neighbor_rep_req(dev, apdev):
 
     dev[0].connect("test2", key_mgmt="NONE", scan_freq="2412")
 
-    if "OK" not in dev[0].request("NEIGHBOR_REP_REQUEST"):
-        raise Exception("Request failed")
-    check_nr_results(dev[0], [bssid1])
-
     if "OK" not in dev[0].request("NEIGHBOR_REP_REQUEST lci"):
         raise Exception("Request failed")
     check_nr_results(dev[0], [bssid1])
@@ -488,14 +484,15 @@ def test_rrm_neighbor_rep_req_from_conf(dev, apdev):
     check_rrm_support(dev[0])
 
     params = {"ssid": "test2", "rrm_neighbor_report": "1",
-              "stationary_ap": "1", "lci": lci, "civic": civic}
+              "stationary_ap": "1", "ftm_responder": "1",
+              "lci": lci, "civic": civic}
     hapd = hostapd.add_ap(apdev[0], params)
 
     bssid = apdev[0]['bssid']
 
     dev[0].connect("test2", key_mgmt="NONE", scan_freq="2412")
 
-    if "OK" not in dev[0].request("NEIGHBOR_REP_REQUEST"):
+    if "OK" not in dev[0].request("NEIGHBOR_REP_REQUEST lci civic"):
         raise Exception("Request failed")
     check_nr_results(dev[0], [bssid])
 
