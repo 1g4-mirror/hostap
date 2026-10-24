@@ -116,6 +116,9 @@ static inline void wpas_nan_rx_naf(struct wpa_supplicant *wpa_s,
 				   size_t len)
 {}
 
+static inline void wpas_nan_flush_niks(struct wpa_supplicant *wpa_s)
+{}
+
 static inline bool wpas_nan_is_peer_paired(struct wpa_supplicant *wpa_s,
 					  const u8 *peer_addr)
 {
