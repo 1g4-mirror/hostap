@@ -4980,6 +4980,10 @@ void wpas_nan_de_rx_sdf(struct wpa_supplicant *wpa_s, const u8 *src,
 #ifdef CONFIG_NAN
 	if (wpas_nan_ready(wpa_s) && store_peer)
 		nan_add_peer(wpa_s->nan, src, a3, freq, buf, len);
+#else /* CONFIG_NAN */
+	if (store_peer) {
+		/* Avoid compiler warning (unused-but-set-variable) */
+	}
 #endif /* CONFIG_NAN */
 
 	for (skip = 0; ; skip++) {
