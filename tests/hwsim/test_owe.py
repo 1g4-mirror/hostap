@@ -916,7 +916,13 @@ def test_owe_invalid_assoc_resp(dev, apdev):
                        scan_freq="2412", wait_connect=False)
         hapd_auth(hapd)
         hapd_assoc(hapd, extra)
-        dev[0].wait_disconnected()
+        ev = dev[0].wait_event(["CTRL-EVENT-DISCONNECTED", "PMKSA-CACHE-ADDED"],
+                               timeout=5)
+        if ev is None:
+            raise Exception("No result reported for invalid DH params")
+        if "PMKSA-CACHE-ADDED" in ev:
+            raise Exception("A PMKSA added unexpectedly")
+
         dev[0].request("REMOVE_NETWORK all")
         dev[0].dump_monitor()
 
