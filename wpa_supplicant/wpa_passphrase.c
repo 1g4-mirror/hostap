@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 	if (argc > 2) {
 		passphrase = argv[2];
 	} else {
-		bool ctrl_echo, notty = false;
+		bool ctrl_echo = false, notty = false;
 
 		fprintf(stderr, "# reading passphrase from stdin\n");
 		if (tcgetattr(STDIN_FILENO, &term) < 0) {
