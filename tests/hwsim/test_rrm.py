@@ -270,6 +270,10 @@ def test_rrm_neighbor_rep_req(dev, apdev):
         raise Exception("Request failed")
     check_nr_results(dev[0])
 
+    if "OK" not in dev[0].request("NEIGHBOR_REP_REQUEST ssid=wildcard"):
+        raise Exception("Request failed")
+    check_nr_results(dev[0])
+
     if "OK" not in dev[0].request("NEIGHBOR_REP_REQUEST ssid=\"test3\" lci civic"):
         raise Exception("Request failed")
     check_nr_results(dev[0])
