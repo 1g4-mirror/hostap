@@ -223,8 +223,9 @@ static void hostapd_send_nei_report_resp(struct hostapd_data *hapd,
 		int send_lci;
 		size_t len;
 
-		if (ssid->ssid_len != nr->ssid.ssid_len ||
-		    os_memcmp(ssid->ssid, nr->ssid.ssid, ssid->ssid_len) != 0)
+		if (ssid->ssid_len &&
+		    (ssid->ssid_len != nr->ssid.ssid_len ||
+		     os_memcmp(ssid->ssid, nr->ssid.ssid, ssid->ssid_len) != 0))
 			continue;
 
 		/* Only include a measurement report for our own BSSID if the
@@ -308,9 +309,15 @@ static void hostapd_handle_nei_report_req(struct hostapd_data *hapd,
 	if (ie && ie[1] && ie[1] <= SSID_MAX_LEN) {
 		ssid.ssid_len = ie[1];
 		os_memcpy(ssid.ssid, ie + 2, ssid.ssid_len);
-	} else {
+	} else if (!ie) {
+		/* No SSID element maps to own ESS */
 		ssid.ssid_len = hapd->conf->ssid.ssid_len;
 		os_memcpy(ssid.ssid, hapd->conf->ssid.ssid, ssid.ssid_len);
+	} else if (ie && ie[1] == 0) {
+		/* Wildcard SSID maps to all ESSs */
+	} else {
+		/* Invalid SSID element */
+		return;
 	}
 
 	while ((ie = get_ie(pos, len, WLAN_EID_MEASURE_REQUEST))) {
